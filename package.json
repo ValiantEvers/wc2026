@@ -1,0 +1,11 @@
+{
+  "name": "world-cup-2026-simulator",
+  "version": "0.1.0",
+  "description": "Interactive FIFA World Cup 2026 simulator — Elo → Poisson → Monte Carlo engine. Vanilla JS, no build step.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node test.js"
+  },
+  "license": "MIT"
+}
