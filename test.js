@@ -16,7 +16,7 @@
 // No test framework, no dependencies — runs anywhere Node does.
 // =============================================================================
 
-import { TEAMS, GROUP_LETTERS, TARGET_MEAN_TOTAL_GOALS } from './data.js';
+import { TEAMS, GROUP_LETTERS, TARGET_MEAN_TOTAL_GOALS, KNOCKOUT_R32, KNOCKOUT_ROUNDS } from './data.js';
 import {
   mulberry32,
   playMatch,
@@ -251,6 +251,50 @@ section('5. Home advantage — host at home wins more than the same neutral tie'
   const neutral = winRate('Canada'); // venue not in USA -> neutral for USA
   console.log(`     USA win rate — home: ${(home * 100).toFixed(1)}%  neutral: ${(neutral * 100).toFixed(1)}%`);
   assert(home > neutral + 0.02, 'host win rate is measurably higher at home than neutral');
+}
+
+// ----------------------------------------------------------------------------
+// 6. BRACKET BALANCE — official fixed tree keeps top Elo seeds in opposite halves
+// ----------------------------------------------------------------------------
+section('6. Bracket balance — top seeds drawn into opposite halves');
+{
+  // Forward winner-feed map: matchId -> the match that consumes its WINNER.
+  // Purely structural (result-independent): a slot's half never changes.
+  const winnerFeed = {};
+  for (const rnd of KNOCKOUT_ROUNDS) {
+    for (const m of rnd.matches) {
+      for (const ref of [m.a, m.b]) {
+        if (ref.take === 'winner') winnerFeed[ref.from] = m.id;
+      }
+    }
+  }
+  const SF_IDS = new Set(KNOCKOUT_ROUNDS.find((r) => r.round === 'SF').matches.map((m) => m.id));
+
+  // Which semifinal does a given group's WINNER ultimately feed into?
+  const sfHalfOfGroupWinner = (group) => {
+    let cur = null;
+    for (const m of KNOCKOUT_R32) {
+      if ((m.a.slot === 'W' && m.a.group === group) || (m.b.slot === 'W' && m.b.group === group)) {
+        cur = m.id;
+        break;
+      }
+    }
+    let guard = 0;
+    while (cur && !SF_IDS.has(cur) && guard++ < 20) cur = winnerFeed[cur];
+    return SF_IDS.has(cur) ? cur : null;
+  };
+
+  const hSpain = sfHalfOfGroupWinner('H'); // Spain     — Elo #1
+  const jArg = sfHalfOfGroupWinner('J');   // Argentina — Elo #2
+  const iFra = sfHalfOfGroupWinner('I');   // France    — Elo #3
+  const lEng = sfHalfOfGroupWinner('L');   // England   — Elo #4
+  console.log(`     SF half -> Spain(H):${hSpain}  Argentina(J):${jArg}  France(I):${iFra}  England(L):${lEng}`);
+
+  assert(hSpain && jArg && iFra && lEng, 'all four top-seed group winners trace to a semifinal');
+  assert(hSpain !== jArg, 'Spain (H) and Argentina (J) are in opposite halves');
+  assert(iFra !== lEng, 'France (I) and England (L) are in opposite halves');
+  assert(hSpain === iFra, 'Spain (H) & France (I) share a half (allowed: #1 and #3 may meet in the SF)');
+  assert(jArg === lEng, 'Argentina (J) & England (L) share the other half');
 }
 
 // ----------------------------------------------------------------------------

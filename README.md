@@ -68,14 +68,19 @@ python -m http.server 8000      # then open http://localhost:8000
    tight low-scoring games. `applyLowScoreCorrection()` is a clearly-commented **no-op hook** where
    the Dixon-Coles τ correction can be dropped in later.
 
-## ⚠️ One inferred data structure (flagged)
+## Knockout bracket — official fixed tree
 
-The source data specifies the **R32 matchups and slot logic** exactly, plus the **venues/dates** for
-R16 → Final. It does **not** publish the explicit cross-bracket pairing tree (which R32 winner meets
-which in R16, etc.). `data.js` therefore pairs winners **sequentially** (`R32_1 ∧ R32_2 → R16_1`, …),
-encoded as swappable `feeds` data. Substituting FIFA's official bracket map later requires editing
-only `KNOCKOUT_ROUNDS` in `data.js` — the engine is unaffected. Consequently the brief's
-"top-4 seeds kept to opposite halves" property is approximate in this build.
+The full knockout bracket uses FIFA's **official fixed tree** (match numbers 73–104). The
+cross-bracket pairings are fixed and result-independent, and the R16 winners **cross** (they do
+*not* pair sequentially) — which is what preserves the "top seeds in opposite halves" guarantee.
+The half structure is verified by an acceptance check: Spain (group H) and Argentina (group J) land
+in opposite halves, as do France (group I) and England (group L). Spain and France sharing the upper
+half is correct — #1 and #3 may meet in a semifinal, just not before.
+
+The tree lives in the swappable `KNOCKOUT_ROUNDS` block in `data.js`; the engine resolves it
+generically by match id, so any future change is data-only. (R16/QF/SF *venue* assignments within a
+round come from the brief's venue pools and are best-effort display values — but the bracket tree
+itself is exact.)
 
 ## Acceptance criteria (all proven by `node test.js`)
 
