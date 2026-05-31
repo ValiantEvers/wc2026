@@ -33,6 +33,11 @@ function seedFrom(str) {
   for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
   return h >>> 0;
 }
+// hex "#rrggbb" → "rgba(r,g,b,alpha)" — tints the net ripple in the scoring team's kit colour
+function teamRgba(hex, alpha) {
+  const n = parseInt(String(hex || '#ffffff').slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
 
 const REDUCED = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SPEEDS = [0.5, 1, 2, 4];
@@ -220,7 +225,8 @@ export function openReplay(match) {
   }
   function spawnRipple(side) {
     const x = side === 'a' ? W - 12 : 12;
-    ctrl.ripples.push({ x, y: H / 2, r: 4, a: 1, side });
+    const color = side === 'a' ? match.a.c1 : match.b.c1;
+    ctrl.ripples.push({ x, y: H / 2, r: 4, a: 1, side, color });
   }
 
   function render(dt) {
@@ -238,10 +244,10 @@ export function openReplay(match) {
       ctx.fillStyle = '#fff'; ctx.fill();
     }
     ctrl.balls = ctrl.balls.filter((b) => b.t < 1);
-    // ripples (net blink)
+    // ripples (net blink in the scoring team's kit colour — a goal, not a champion)
     for (const rp of ctrl.ripples) {
       rp.r += dt * 0.07; rp.a -= dt / 700;
-      ctx.strokeStyle = `rgba(244,198,74,${Math.max(0, rp.a)})`; ctx.lineWidth = 3;
+      ctx.strokeStyle = teamRgba(rp.color, Math.max(0, rp.a)); ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2); ctx.stroke();
     }
     ctrl.ripples = ctrl.ripples.filter((r) => r.a > 0);

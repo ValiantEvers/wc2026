@@ -22,13 +22,15 @@
   /* accents */
   --gold: #f4c64a;          /* RESERVED: champion / final / podium */
   --gold-deep: #c9952a;
+  --accent-blue: #4da3ff;   /* broadcast chrome accent — all non-champion UI */
+  --accent-blue-deep: #2b6fc2;
   --pitch: #1f9e57;         /* advance / positive */
   --pitch-deep: #0c7a3f;
   --live: #ff3b5c;          /* runner-up / alert chips */
 
   /* highlight (Norway / Belgium narrative — restyled, no strength effect) */
   --hl: #1b2742;
-  --hl-edge: var(--gold);
+  --hl-edge: var(--accent-blue);
 
   /* per-team accent — set inline per row/card by ui.js via --team-1 / --team-2;
      these are only fallbacks if a team somehow has no colour. */
@@ -52,7 +54,7 @@ body {
   line-height: 1.45;
   color: var(--ink);
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(244, 198, 74, 0.07), transparent 60%),
+    radial-gradient(1200px 600px at 80% -10%, rgba(77, 163, 255, 0.07), transparent 60%),
     radial-gradient(900px 500px at -10% 0%, rgba(31, 158, 87, 0.06), transparent 55%),
     var(--bg);
   background-attachment: fixed;
@@ -94,7 +96,7 @@ header::after {
   position: absolute;
   left: 0; right: 0; bottom: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--gold-deep), var(--gold) 35%, transparent 75%);
+  background: linear-gradient(90deg, var(--accent-blue-deep), var(--accent-blue) 35%, transparent 75%);
   transform: skewY(-0.25deg);
   transform-origin: left;
 }
@@ -141,7 +143,7 @@ h2::before {
   left: 0; top: 50%;
   width: 4px; height: 1.05em;
   transform: translateY(-50%) skewX(-10deg);
-  background: var(--gold);
+  background: var(--accent-blue);
 }
 h3 {
   font-size: 12px; margin: 0 0 6px;
@@ -168,13 +170,13 @@ button {
   cursor: pointer;
   transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.06s ease;
 }
-button:hover { border-color: var(--gold); color: var(--gold); }
+button:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
 button:active { transform: translateY(1px); }
 button.active {
-  background: linear-gradient(180deg, var(--gold), var(--gold-deep));
-  color: #1a1304;
-  border-color: var(--gold);
-  box-shadow: 0 4px 14px rgba(244, 198, 74, 0.22);
+  background: linear-gradient(180deg, var(--accent-blue), var(--accent-blue-deep));
+  color: #04111f;
+  border-color: var(--accent-blue);
+  box-shadow: 0 4px 14px rgba(77, 163, 255, 0.22);
 }
 
 input[type="number"] {
@@ -187,7 +189,7 @@ input[type="number"] {
   background: var(--bg);
   color: var(--ink);
 }
-input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 0; border-color: var(--gold); }
+input[type="number"]:focus { outline: 2px solid var(--accent-blue); outline-offset: 0; border-color: var(--accent-blue); }
 label { color: var(--muted); font-size: 13px; }
 
 .controls { margin: 16px 0 4px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
@@ -218,7 +220,7 @@ label { color: var(--muted); font-size: 13px; }
   content: "";
   position: absolute; left: 0; top: 0; bottom: 0;
   width: 4px;
-  background: linear-gradient(180deg, var(--gold), var(--gold-deep));
+  background: linear-gradient(180deg, var(--accent-blue), var(--accent-blue-deep));
 }
 
 table { width: 100%; border-collapse: collapse; }
@@ -251,7 +253,7 @@ tbody td:nth-child(2)::before {
 /* qualification states */
 tbody tr.adv td { background: linear-gradient(90deg, rgba(31, 158, 87, 0.16), rgba(31, 158, 87, 0.03)); }
 tbody tr.adv td:last-child { color: #b6f0cf; font-weight: 700; }
-tbody tr.adv-third td { background: linear-gradient(90deg, rgba(244, 198, 74, 0.12), rgba(244, 198, 74, 0.02)); }
+tbody tr.adv-third td { background: linear-gradient(90deg, rgba(77, 163, 255, 0.12), rgba(77, 163, 255, 0.02)); }
 
 .matches { padding: 9px 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
 .matches .m { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
@@ -269,7 +271,7 @@ tbody tr.adv-third td { background: linear-gradient(90deg, rgba(244, 198, 74, 0.
 /* Norway / Belgium highlight — restyled to the gold-edge treatment, no boost */
 .hl { background: var(--hl) !important; box-shadow: inset 3px 0 0 var(--hl-edge); }
 tbody tr.hl td { background: var(--hl) !important; }
-tbody tr.hl td:last-child { color: var(--gold); }
+tbody tr.hl td:last-child { color: var(--accent-blue); }
 
 /* ---- BRACKET TREE ------------------------------------------------------- */
 #bracket-wrap { overflow-x: auto; padding-bottom: 8px; }
@@ -326,10 +328,10 @@ tbody tr.hl td:last-child { color: var(--gold); }
 }
 .bracket-links .link.half { stroke: var(--muted-2); opacity: 0.7; }
 .bracket-links .link.lit {
-  stroke: var(--gold);
+  stroke: var(--accent-blue);
   opacity: 0.95;
   stroke-width: 2.5;
-  filter: drop-shadow(0 0 3px rgba(244, 198, 74, 0.5));
+  filter: drop-shadow(0 0 3px rgba(77, 163, 255, 0.5));
 }
 .round, .tcell { position: relative; z-index: 1; }
 
@@ -344,7 +346,7 @@ tbody tr.hl td:last-child { color: var(--gold); }
 .match:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5); }
 
 /* a next-round card whose two feeders are both decided */
-.match.ready { border-color: var(--line-strong); box-shadow: 0 0 0 1px rgba(244, 198, 74, 0.25), 0 6px 16px rgba(0, 0, 0, 0.35); }
+.match.ready { border-color: var(--line-strong); box-shadow: 0 0 0 1px rgba(77, 163, 255, 0.25), 0 6px 16px rgba(0, 0, 0, 0.35); }
 /* soft reveal when a knockout card is filled during playback */
 @keyframes ko-reveal {
   from { opacity: 0; transform: translateX(-8px) scale(0.98); }
@@ -363,8 +365,9 @@ tbody tr.hl td:last-child { color: var(--gold); }
 .match .team .score { font-weight: 800; font-size: 16px; color: var(--muted); min-width: 1.4em; text-align: right; }
 .match .team.winner { background: rgba(255, 255, 255, 0.03); }
 .match .team.winner .name { color: var(--ink); }
-.match .team.winner .score { color: var(--gold); }
+.match .team.winner .score { color: var(--accent-blue); }
 .match .team:not(.winner) .name { color: var(--muted); }
+/* generic knockout winner score = chrome (blue); champion's stays gold via .crescendo below */
 .match .team.hl { background: var(--hl); box-shadow: inset 3px 0 0 var(--hl-edge); }
 
 .match .extra {
@@ -431,7 +434,7 @@ tbody tr.hl td:last-child { color: var(--gold); }
 /* ---- MONTE CARLO TABLE -------------------------------------------------- */
 #mc-status { color: var(--muted); margin: 6px 0; font-variant-numeric: tabular-nums; }
 .note { color: var(--muted); font-size: 12px; margin: 12px 0; }
-code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var(--gold); font-size: 0.92em; }
+code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var(--accent-blue); font-size: 0.92em; }
 
 #mc-table {
   border: 1px solid var(--line);
@@ -447,8 +450,8 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
   user-select: none;
   white-space: nowrap;
 }
-#mc-table th:hover { color: var(--gold); }
-#mc-table th.sorted { color: var(--gold); }
+#mc-table th:hover { color: var(--accent-blue); }
+#mc-table th.sorted { color: var(--accent-blue); }
 #mc-table th.sorted::after { content: " ▾"; }
 #mc-table td.bar { position: relative; }
 #mc-table td.bar .barfill {
@@ -471,7 +474,7 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
   background: linear-gradient(180deg, var(--team-1) 0 60%, var(--team-2) 60% 100%);
 }
 #mc-table tbody tr.hl { background: var(--hl); }
-#mc-table tbody tr.hl td:first-child { color: var(--gold); }
+#mc-table tbody tr.hl td:first-child { color: var(--accent-blue); }
 
 /* ---- LIVE PLAYBACK (Code phase step 2) ---------------------------------- */
 .playbar {
@@ -524,8 +527,8 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
 }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button.active {
-  background: linear-gradient(180deg, var(--gold), var(--gold-deep));
-  color: #1a1304;
+  background: linear-gradient(180deg, var(--accent-blue), var(--accent-blue-deep));
+  color: #04111f;
 }
 
 /* pending vs played reveal states */
@@ -538,28 +541,28 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
 
 /* "now playing" pulse — subtle; heavier motion lands in steps 3–4 */
 @keyframes pb-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 198, 74, 0.0); }
-  50%      { box-shadow: 0 0 0 3px rgba(244, 198, 74, 0.35); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(77, 163, 255, 0.0); }
+  50%      { box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.35); }
 }
 .match.playing {
-  border-color: var(--gold);
+  border-color: var(--accent-blue);
   animation: pb-pulse 1.1s ease-in-out infinite;
 }
-.group.playing { border-color: var(--gold-deep); }
+.group.playing { border-color: var(--accent-blue-deep); }
 .matches .m.playing {
   opacity: 1;
-  color: var(--gold);
+  color: var(--accent-blue);
   font-weight: 700;
 }
-.matches .m.playing span:last-child { color: var(--gold); }
+.matches .m.playing span:last-child { color: var(--accent-blue); }
 .pod.playing { animation: pb-pulse 1.1s ease-in-out infinite; }
 
 /* ---- GOAL REPLAY MODAL (Code phase step 4) ------------------------------ */
 /* clickable affordance: played matches / group lines open the replay */
 #bracket .match:not(.pending) { cursor: pointer; }
-#bracket .match:not(.pending):hover { border-color: var(--gold); }
+#bracket .match:not(.pending):hover { border-color: var(--accent-blue); }
 .matches .m:not(.pending) { cursor: pointer; border-radius: 4px; }
-.matches .m:not(.pending):hover { background: rgba(244, 198, 74, 0.08); }
+.matches .m:not(.pending):hover { background: rgba(77, 163, 255, 0.08); }
 
 .rp-overlay {
   position: fixed; inset: 0; z-index: 1000;
@@ -593,7 +596,7 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
   width: 30px; height: 30px; padding: 0; border-radius: 8px; cursor: pointer;
   font-size: 14px; line-height: 1;
 }
-.rp-close:hover { border-color: var(--gold); color: var(--gold); }
+.rp-close:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
 .rp-stage { padding: 14px 16px 16px; }
 
 .rp-scorebar {
@@ -602,13 +605,13 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
 }
 .rp-team { display: inline-flex; align-items: center; gap: 7px; font-family: var(--display); font-weight: 800; font-size: 17px; letter-spacing: 0.03em; }
 .rp-team .sw { width: 14px; height: 14px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,0.4); }
-.rp-team.scored { color: var(--gold); transition: color 0.1s ease; }
+.rp-team.scored { color: #fff; text-shadow: 0 0 8px rgba(255, 255, 255, 0.55); transition: color 0.1s ease, text-shadow 0.1s ease; }
 .rp-score { font-family: var(--display); font-weight: 900; font-size: 26px; font-variant-numeric: tabular-nums; min-width: 92px; text-align: center; }
 .rp-clockwrap { margin-left: 8px; }
 .rp-clock {
   font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums;
   background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
-  padding: 3px 11px; font-size: 13px; color: var(--gold);
+  padding: 3px 11px; font-size: 13px; color: var(--accent-blue);
 }
 
 .rp-canvas-wrap { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
@@ -616,7 +619,7 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
 .rp-banner {
   position: absolute; left: 50%; top: 14px; transform: translateX(-50%) translateY(-6px);
   font-family: var(--display); font-weight: 800; letter-spacing: 0.04em;
-  background: rgba(244, 198, 74, 0.95); color: #1a1304;
+  background: rgba(238, 242, 251, 0.96); color: #070b16;
   padding: 5px 12px; border-radius: 999px; font-size: 14px;
   opacity: 0; pointer-events: none;
 }
@@ -631,16 +634,16 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
 .rp-timeline { position: relative; height: 8px; margin: 12px 2px 4px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; }
 .rp-tl-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, var(--pitch-deep), var(--pitch)); border-radius: 999px; transition: width 0.1s linear; }
 .rp-tl-goal { position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px var(--bg); }
-.rp-tl-a { background: var(--gold); }
+.rp-tl-a { background: #ffffff; }
 .rp-tl-b { background: #6fb6ff; }
 
 .rp-controls { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 .rp-btn { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 12px; padding: 8px 13px; border: 1px solid var(--line-strong); background: var(--bg-2); color: var(--ink); border-radius: 8px; cursor: pointer; }
-.rp-btn:hover { border-color: var(--gold); color: var(--gold); }
+.rp-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
 .seg.rp-speed button { padding: 7px 10px; font-size: 12px; }
 
 .rp-pens { margin-top: 12px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; }
-.rp-pens-title { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; color: var(--gold); margin-bottom: 8px; }
+.rp-pens-title { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; color: var(--accent-blue); margin-bottom: 8px; }
 .rp-pen-row { display: flex; align-items: center; gap: 7px; padding: 3px 0; }
 .rp-pen-code { font-family: var(--display); font-weight: 700; width: 3em; }
 .rp-pen-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--line-strong); }
@@ -648,7 +651,7 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
 .rp-pen-dot.miss { background: transparent; border-color: var(--live); }
 
 .rp-summary { margin-top: 12px; }
-.rp-sum-ft { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gold); margin-bottom: 6px; }
+.rp-sum-ft { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent-blue); margin-bottom: 6px; }
 .rp-sum-list { display: flex; flex-direction: column; gap: 2px; }
 .rp-sum-row { display: flex; gap: 10px; font-size: 13px; color: var(--muted); }
 .rp-sum-min { font-variant-numeric: tabular-nums; color: var(--ink); min-width: 3em; }
