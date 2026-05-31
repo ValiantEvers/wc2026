@@ -19,6 +19,7 @@
 import { TEAMS, GROUP_MATCHES, GROUP_LETTERS, GROUPS, KNOCKOUT_ROUNDS } from './data.js';
 import { simulateTournament, monteCarlo } from './engine.js';
 import { TEAM_COLORS } from './colors.js';
+import { openReplay, closeReplay } from './replay.js';
 
 const HIGHLIGHT = new Set(['NOR', 'BEL']); // narrative focus, zero strength effect
 const $ = (sel) => document.querySelector(sel);
@@ -60,6 +61,43 @@ let koCardRefs = {};      // knockout match id -> current card node
 let koDoneIds = new Set(); // knockout match ids already revealed (for connectors)
 let podiumSlots = [];      // 4 podium card nodes (skeleton then filled)
 let playingNodes = [];    // nodes currently flagged `.playing`
+
+let currentSim = null;    // the sim being played/shown (source for goal replay)
+const koRecById = {};     // knockout match id -> record (for replay lookup)
+const colorsOf = (code) => TEAM_COLORS[code] || { primary: '#6f86b8', secondary: '#31405f' };
+
+// Build the replay payload for a knockout record.
+function koReplayMatch(rec, stageLabel) {
+  const r = rec.result;
+  const ca = colorsOf(rec.teamA.code), cb = colorsOf(rec.teamB.code);
+  return {
+    id: rec.id, stageLabel,
+    a: { code: rec.teamA.code, name: rec.teamA.name, c1: ca.primary, c2: ca.secondary },
+    b: { code: rec.teamB.code, name: rec.teamB.name, c1: cb.primary, c2: cb.secondary },
+    scoreA: r.finalScoreA, scoreB: r.finalScoreB,
+    events: r.events || [],
+    knockout: true, extraTime: !!r.extraTime, penalties: !!r.penalties, penA: r.penA, penB: r.penB,
+  };
+}
+// Build the replay payload for a group match (m has a,b,scoreA,scoreB,result).
+function groupReplayMatch(group, m) {
+  const r = m.result;
+  const ca = colorsOf(m.a), cb = colorsOf(m.b);
+  return {
+    id: `G_${group}_${m.a}_${m.b}`, stageLabel: `Group ${group}`,
+    a: { code: m.a, name: teamName(m.a), c1: ca.primary, c2: ca.secondary },
+    b: { code: m.b, name: teamName(m.b), c1: cb.primary, c2: cb.secondary },
+    scoreA: m.scoreA, scoreB: m.scoreB,
+    events: (r && r.events) || [],
+    knockout: false, extraTime: false, penalties: false,
+  };
+}
+
+// Pause tournament playback (step 2) when a replay opens, then open it.
+function launchReplay(match) {
+  if (pb && pb.isPlaying && pb.isPlaying()) pb.pause();
+  openReplay(match);
+}
 
 // ----------------------------------------------------------------------------
 // mode toggle
@@ -707,11 +745,22 @@ function renderFinal(sim) {
   $('#single-status').textContent = `seed ${sim.seed} · champion ${sim.champion.name}`;
 }
 
+const KO_STAGE_LABEL = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarterfinal', SF: 'Semifinal', THIRD: '3rd place', FINAL: 'Final' };
+function indexKnockout(sim) {
+  for (const k in koRecById) delete koRecById[k];
+  for (const round of ['R32', 'R16', 'QF', 'SF', 'THIRD', 'FINAL']) {
+    for (const rec of sim.knockout.rounds[round]) koRecById[rec.id] = { rec, round };
+  }
+}
+
 function startPlayback(seed) {
   currentSeed = seed;
+  closeReplay();
   if (pb) pb.destroy();
   const sim = simulateTournament(seed);
+  currentSim = sim;
   for (const g of sim.groups) groupByLetter[g.group] = g;
+  indexKnockout(sim);
 
   buildGroupsSkeleton(sim);
   buildBracketSkeleton(sim);
@@ -772,6 +821,29 @@ $('#btn-rand').addEventListener('click', () => {
   const s = Math.floor(Math.random() * 1e9);
   $('#seed').value = s;
   startPlayback(s);
+});
+
+// --- goal-replay triggers (delegated; survive re-renders) --------------------
+// Bracket card click -> replay, only if the card is revealed (not pending).
+$('#bracket').addEventListener('click', (e) => {
+  const card = e.target.closest('.match');
+  if (!card || card.classList.contains('pending')) return;
+  const id = card.getAttribute('data-match-id');
+  const entry = id && koRecById[id];
+  if (!entry) return;
+  launchReplay(koReplayMatch(entry.rec, KO_STAGE_LABEL[entry.round]));
+});
+// Group match-line click -> replay, only if played (not pending).
+$('#groups').addEventListener('click', (e) => {
+  const line = e.target.closest('.matches .m');
+  if (!line || line.classList.contains('pending')) return;
+  const groupEl = line.closest('.group');
+  const group = groupEl && groupEl.getAttribute('data-group');
+  const g = group && groupByLetter[group];
+  if (!g) return;
+  const pair = line.getAttribute('data-match'); // "A-B" codes
+  const m = g.matches.find((x) => `${x.a}-${x.b}` === pair);
+  if (m) launchReplay(groupReplayMatch(group, m));
 });
 
 // keep the bracket tree aligned + connectors redrawn on viewport changes
