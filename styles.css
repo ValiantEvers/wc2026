@@ -271,10 +271,32 @@ tbody tr.adv-third td { background: linear-gradient(90deg, rgba(244, 198, 74, 0.
 tbody tr.hl td { background: var(--hl) !important; }
 tbody tr.hl td:last-child { color: var(--gold); }
 
-/* ---- BRACKET ------------------------------------------------------------ */
+/* ---- BRACKET TREE ------------------------------------------------------- */
 #bracket-wrap { overflow-x: auto; padding-bottom: 8px; }
-.bracket { display: flex; gap: 18px; align-items: flex-start; min-width: max-content; padding-top: 4px; }
-.round { display: flex; flex-direction: column; gap: 12px; min-width: 210px; }
+.bracket {
+  position: relative;            /* anchor for the SVG connector layer */
+  display: flex;
+  gap: 44px;                     /* room for connector elbows between rounds */
+  align-items: stretch;
+  min-width: max-content;
+  padding-top: 4px;
+}
+.round { display: flex; flex-direction: column; min-width: 210px; }
+/* slots column distributes cards evenly; each tcell self-centers via --shift */
+.round-slots {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  flex: 1;
+  gap: 12px;
+}
+.tcell {
+  display: flex;
+  align-items: center;
+  transform: translateY(var(--shift, 0));
+  transition: transform 0.35s ease;
+}
+.tcell > .match { width: 100%; }
 .round-title {
   font-family: var(--display);
   font-weight: 800;
@@ -283,8 +305,33 @@ tbody tr.hl td:last-child { color: var(--gold); }
   text-transform: uppercase;
   letter-spacing: 0.1em;
   padding-bottom: 2px;
+  margin-bottom: 8px;
   border-bottom: 1px solid var(--line);
 }
+
+/* SVG connector layer sits behind the cards */
+.bracket-links {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: visible;
+}
+.bracket-links .link {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 2;
+  opacity: 0.5;
+  transition: stroke 0.3s ease, opacity 0.3s ease, stroke-width 0.3s ease;
+}
+.bracket-links .link.half { stroke: var(--muted-2); opacity: 0.7; }
+.bracket-links .link.lit {
+  stroke: var(--gold);
+  opacity: 0.95;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 3px rgba(244, 198, 74, 0.5));
+}
+.round, .tcell { position: relative; z-index: 1; }
 
 .match {
   border: 1px solid var(--line);
@@ -295,6 +342,15 @@ tbody tr.hl td:last-child { color: var(--gold); }
   transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
 .match:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5); }
+
+/* a next-round card whose two feeders are both decided */
+.match.ready { border-color: var(--line-strong); box-shadow: 0 0 0 1px rgba(244, 198, 74, 0.25), 0 6px 16px rgba(0, 0, 0, 0.35); }
+/* soft reveal when a knockout card is filled during playback */
+@keyframes ko-reveal {
+  from { opacity: 0; transform: translateX(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.match.revealing { animation: ko-reveal 0.34s ease both; }
 
 .match .team {
   display: flex; align-items: center; gap: 8px;
@@ -324,6 +380,19 @@ tbody tr.hl td:last-child { color: var(--gold); }
   border-color: var(--gold-deep);
   box-shadow: 0 8px 26px rgba(244, 198, 74, 0.18);
 }
+
+/* gold crescendo — final card + champion podium when the final is decided */
+@keyframes gold-crescendo {
+  0%   { transform: scale(1);    box-shadow: 0 8px 26px rgba(244, 198, 74, 0.18); }
+  35%  { transform: scale(1.04); box-shadow: 0 0 0 3px rgba(244, 198, 74, 0.55), 0 14px 40px rgba(244, 198, 74, 0.45); }
+  100% { transform: scale(1.02); box-shadow: 0 0 0 2px rgba(244, 198, 74, 0.38), 0 12px 34px rgba(244, 198, 74, 0.3); }
+}
+.match.crescendo {
+  border-color: var(--gold);
+  animation: gold-crescendo 1.2s ease forwards;
+}
+.match.crescendo .team.winner .score { color: var(--gold); }
+.pod.crescendo { animation: gold-crescendo 1.2s ease forwards; }
 
 /* ---- PODIUM ------------------------------------------------------------- */
 #podium { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }

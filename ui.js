@@ -16,7 +16,7 @@
 // Norway (NOR) and Belgium (BEL) are visually highlighted only — no boost.
 // =============================================================================
 
-import { TEAMS, GROUP_MATCHES, GROUP_LETTERS, GROUPS } from './data.js';
+import { TEAMS, GROUP_MATCHES, GROUP_LETTERS, GROUPS, KNOCKOUT_ROUNDS } from './data.js';
 import { simulateTournament, monteCarlo } from './engine.js';
 import { TEAM_COLORS } from './colors.js';
 
@@ -57,6 +57,7 @@ const groupByLetter = {}; // letter -> engine group result
 let groupShells = {};     // letter -> { container, tbody, matchesDiv }
 let revealedByGroup = {}; // letter -> Set of revealed match indices
 let koCardRefs = {};      // knockout match id -> current card node
+let koDoneIds = new Set(); // knockout match ids already revealed (for connectors)
 let podiumSlots = [];      // 4 podium card nodes (skeleton then filled)
 let playingNodes = [];    // nodes currently flagged `.playing`
 
@@ -255,7 +256,34 @@ function buildGroupsSkeleton(sim) {
   }
 }
 
-// --- bracket: skeleton of blank cards, each revealed when its match plays -----
+// --- bracket TREE derivation (display-only; reads KNOCKOUT_ROUNDS feeds) ------
+//
+// The bracket is rendered as a real left→right tree. Display order is DERIVED
+// from the winner-feeds in KNOCKOUT_ROUNDS so every next-round card sits between
+// its two feeders (no crossing lines), all the way to the final. This touches
+// only render order — match ids / data / engine are untouched.
+//
+// childWinners[id] = [feederId, feederId] for matches fed by winners.
+function buildKoTree() {
+  const childWinners = {};
+  for (const rnd of KNOCKOUT_ROUNDS) {
+    for (const m of rnd.matches) {
+      const w = [m.a, m.b].filter((s) => s.take === 'winner').map((s) => s.from);
+      if (w.length) childWinners[m.id] = w;
+    }
+  }
+  // Order R32 by an in-order (DFS) walk down from the final, so leaves come out
+  // already paired and aligned with every ancestor.
+  const r32Order = [];
+  (function walk(id) {
+    const kids = childWinners[id];
+    if (!kids) { r32Order.push(id); return; }
+    walk(kids[0]);
+    walk(kids[1]);
+  })('FINAL');
+  return { childWinners, r32Order };
+}
+
 function blankCard(id) {
   const blankTeam = () => el('div', { class: 'team' },
     el('span', { class: 'flag-slot' }),
@@ -265,28 +293,85 @@ function blankCard(id) {
   return el('div', { class: 'match pending', 'data-match-id': id }, blankTeam(), blankTeam());
 }
 
+// Lay out one tree column. `recs` is the round's records; `order` is the desired
+// top-to-bottom id order for THIS column (derived to align with feeders).
+function buildColumn(round, recs, order, cardFor) {
+  const byId = {};
+  for (const rec of recs) byId[rec.id] = rec;
+  const col = el('div', { class: `round r-${round}`, 'data-round': round },
+    el('div', { class: 'round-title', text: ROUND_TITLES[round] })
+  );
+  const slots = el('div', { class: 'round-slots' });
+  for (const id of order) {
+    const rec = byId[id];
+    if (!rec) continue;
+    const card = cardFor(rec);
+    const cell = el('div', { class: 'tcell', 'data-cell': id }, card);
+    slots.append(cell);
+  }
+  col.append(slots);
+  return col;
+}
+
+// Compute per-round display order from the R32 order + feed graph, so each
+// round's cards line up with the midpoint of their two feeders.
+function roundOrders(tree) {
+  const orders = { R32: tree.r32Order };
+  const round16Ids = KNOCKOUT_ROUNDS.find((r) => r.round === 'R16').matches.map((m) => m.id);
+  // For each subsequent round, order by the average index of its feeders in the
+  // previous round's order.
+  const prevIndex = (order) => { const idx = {}; order.forEach((id, i) => (idx[id] = i)); return idx; };
+  let prev = 'R32';
+  for (const round of ['R16', 'QF', 'SF', 'FINAL']) {
+    const recs = KNOCKOUT_ROUNDS.find((r) => r.round === round).matches;
+    const idx = prevIndex(orders[prev]);
+    const withKey = recs.map((m) => {
+      const feeders = (tree.childWinners[m.id] || []);
+      const key = feeders.length ? feeders.reduce((s, f) => s + (idx[f] ?? 0), 0) / feeders.length : 0;
+      return { id: m.id, key };
+    });
+    withKey.sort((a, b) => a.key - b.key);
+    orders[round] = withKey.map((x) => x.id);
+    prev = round;
+  }
+  void round16Ids;
+  return orders;
+}
+
+let koTree = null;
+let koOrders = null;
+let koTargetY = {};       // analytic vertical center per match id (for connectors)
+
 function buildBracketSkeleton(sim) {
   const wrap = $('#bracket');
   wrap.replaceChildren();
   koCardRefs = {};
+  koDoneIds = new Set();
+  koTree = buildKoTree();
+  koOrders = roundOrders(koTree);
   for (const round of ROUND_ORDER) {
-    const col = el('div', { class: `round r-${round}`, 'data-round': round },
-      el('div', { class: 'round-title', text: ROUND_TITLES[round] })
-    );
-    for (const rec of sim.knockout.rounds[round]) {
+    const recs = sim.knockout.rounds[round];
+    const col = buildColumn(round, recs, koOrders[round], (rec) => {
       const card = blankCard(rec.id);
       koCardRefs[rec.id] = card;
-      col.append(card);
-    }
+      return card;
+    });
     wrap.append(col);
   }
+  ensureConnectorLayer(wrap);
+  requestAnimationFrame(() => layoutTree(wrap));
 }
 
 function revealKoCard(rec) {
   const real = matchNode(rec);
-  real.classList.add('played');
+  real.classList.add('played', 'revealing');
   if (koCardRefs[rec.id]) koCardRefs[rec.id].replaceWith(real);
   koCardRefs[rec.id] = real;
+  koDoneIds.add(rec.id);
+  // clear the one-shot reveal flag after the transition
+  requestAnimationFrame(() => requestAnimationFrame(() => real.classList.remove('revealing')));
+  // light connectors whose both endpoints are now done, and flag ready parents
+  refreshConnectors();
   return real;
 }
 
@@ -294,13 +379,146 @@ function revealKoCard(rec) {
 function renderBracket(sim) {
   const wrap = $('#bracket');
   wrap.replaceChildren();
+  koCardRefs = {};
+  koDoneIds = new Set(Object.values(sim.knockout.rounds).flat().map((r) => r.id));
+  koTree = buildKoTree();
+  koOrders = roundOrders(koTree);
   for (const round of ROUND_ORDER) {
     const recs = sim.knockout.rounds[round];
-    const col = el('div', { class: `round r-${round}`, 'data-round': round },
-      el('div', { class: 'round-title', text: ROUND_TITLES[round] })
-    );
-    for (const rec of recs) col.append(matchNode(rec));
+    const col = buildColumn(round, recs, koOrders[round], (rec) => {
+      const card = matchNode(rec);
+      koCardRefs[rec.id] = card;
+      return card;
+    });
     wrap.append(col);
+  }
+  ensureConnectorLayer(wrap);
+  requestAnimationFrame(() => { layoutTree(wrap); refreshConnectors(); });
+}
+
+// --- connector layer: an SVG sitting behind the cards, lines feeder->parent ---
+function ensureConnectorLayer(wrap) {
+  let svg = wrap.querySelector('.bracket-links');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'bracket-links');
+    wrap.prepend(svg);
+  }
+  return svg;
+}
+
+// Vertically center each parent card between its two feeder cards, then draw the
+// connector paths. We compute target centers analytically (base unshifted center
+// + intended shift), propagating round by round, so a parent centers on its
+// feeders' INTENDED positions — not on a mid-transition transformed rect. Pure
+// transform/positioning; runs on build + resize, not on the per-match timer.
+function layoutTree(wrap) {
+  if (!koTree) return;
+  const svg = ensureConnectorLayer(wrap);
+  const wrapRect = wrap.getBoundingClientRect();
+  const cellOf = (id) => wrap.querySelector(`.tcell[data-cell="${id}"]`);
+
+  // size the svg to the scrollable content
+  const w = wrap.scrollWidth, h = wrap.scrollHeight;
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+  // base (unshifted) center for every card: clear shifts first so reads are clean
+  for (const round of ['R16', 'QF', 'SF', 'FINAL']) {
+    for (const id of koOrders[round]) {
+      const cell = cellOf(id);
+      if (cell) cell.style.setProperty('--shift', '0px');
+    }
+  }
+  const baseCenter = {};
+  const allRounds = ['R32', 'R16', 'QF', 'SF', 'FINAL'];
+  for (const round of allRounds) {
+    for (const id of koOrders[round]) {
+      const cell = cellOf(id);
+      if (!cell) continue;
+      const card = cell.querySelector('.match') || cell;
+      const r = card.getBoundingClientRect();
+      baseCenter[id] = r.top - wrapRect.top + wrap.scrollTop + r.height / 2;
+    }
+  }
+
+  // target center: R32 stays at base; each parent = midpoint of feeders' targets
+  const target = { ...baseCenter };
+  for (const round of ['R16', 'QF', 'SF', 'FINAL']) {
+    for (const id of koOrders[round]) {
+      const feeders = koTree.childWinners[id];
+      if (!feeders || feeders.length < 2) continue;
+      const t0 = target[feeders[0]], t1 = target[feeders[1]];
+      if (t0 == null || t1 == null) continue;
+      target[id] = (t0 + t1) / 2;
+      const cell = cellOf(id);
+      if (cell && baseCenter[id] != null) cell.style.setProperty('--shift', `${target[id] - baseCenter[id]}px`);
+    }
+  }
+
+  koTargetY = target; // cache for connector redraws on reveal
+  requestAnimationFrame(() => drawConnectors(svg, wrap, wrapRect, target));
+}
+
+// Horizontal edges from a card's column box (X is stable — only Y transitions,
+// and we take Y from the analytic `target` map so paths are exact immediately).
+function edgeX(id, side, wrap, wrapRect) {
+  const cell = wrap.querySelector(`.tcell[data-cell="${id}"]`);
+  if (!cell) return null;
+  const card = cell.querySelector('.match') || cell;
+  const r = card.getBoundingClientRect();
+  return (side === 'right' ? r.right : r.left) - wrapRect.left + wrap.scrollLeft;
+}
+
+function drawConnectors(svg, wrap, wrapRect, target) {
+  if (!koTree) return;
+  svg.replaceChildren();
+  const NS = 'http://www.w3.org/2000/svg';
+  for (const round of ['R16', 'QF', 'SF', 'FINAL']) {
+    for (const id of koOrders[round]) {
+      const feeders = koTree.childWinners[id];
+      if (!feeders) continue;
+      const px = edgeX(id, 'left', wrap, wrapRect);
+      const py = target[id];
+      if (px == null || py == null) continue;
+      for (const f of feeders) {
+        const sx = edgeX(f, 'right', wrap, wrapRect);
+        const sy = target[f];
+        if (sx == null || sy == null) continue;
+        const midX = (sx + px) / 2;
+        const d = `M ${sx} ${sy} H ${midX} V ${py} H ${px}`;
+        const path = document.createElementNS(NS, 'path');
+        path.setAttribute('d', d);
+        path.setAttribute('class', 'link' + (koDoneIds.has(f) && koDoneIds.has(id) ? ' lit' : (koDoneIds.has(f) ? ' half' : '')));
+        path.setAttribute('data-from', f);
+        path.setAttribute('data-to', id);
+        svg.append(path);
+      }
+    }
+  }
+}
+
+// Re-evaluate connector lit/half state + "ready" parent flag after a reveal.
+function refreshConnectors() {
+  const wrap = $('#bracket');
+  const svg = wrap && wrap.querySelector('.bracket-links');
+  if (!svg) return;
+  for (const path of svg.querySelectorAll('path.link')) {
+    const f = path.getAttribute('data-from');
+    const to = path.getAttribute('data-to');
+    path.classList.toggle('lit', koDoneIds.has(f) && koDoneIds.has(to));
+    path.classList.toggle('half', koDoneIds.has(f) && !koDoneIds.has(to));
+  }
+  // mark a next-round card "ready" once both its feeders are done (and itself not yet played)
+  if (koTree) {
+    for (const id in koTree.childWinners) {
+      const [a, b] = koTree.childWinners[id];
+      const card = koCardRefs[id];
+      if (!card) continue;
+      const ready = koDoneIds.has(a) && koDoneIds.has(b) && !koDoneIds.has(id);
+      card.classList.toggle('ready', ready);
+    }
   }
 }
 
@@ -406,6 +624,8 @@ function revealEvent(ev) {
       const card = revealKoCard(rec);
       fillPodium(0, rec.winner);
       fillPodium(1, rec.loser);
+      card.classList.add('crescendo');
+      podiumSlots[0].classList.add('crescendo');
       setPlaying([card, podiumSlots[0], podiumSlots[1]]);
     } else {
       setPlaying([revealKoCard(rec)]);
@@ -552,6 +772,16 @@ $('#btn-rand').addEventListener('click', () => {
   const s = Math.floor(Math.random() * 1e9);
   $('#seed').value = s;
   startPlayback(s);
+});
+
+// keep the bracket tree aligned + connectors redrawn on viewport changes
+let resizeRaf = 0;
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => {
+    const wrap = $('#bracket');
+    if (wrap && koTree) layoutTree(wrap);
+  });
 });
 
 // ----------------------------------------------------------------------------
