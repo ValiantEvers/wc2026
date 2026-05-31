@@ -408,6 +408,11 @@ function revealKoCard(rec) {
   koDoneIds.add(rec.id);
   // clear the one-shot reveal flag after the transition
   requestAnimationFrame(() => requestAnimationFrame(() => real.classList.remove('revealing')));
+  // Re-center the whole tree (the real card's height differs from the blank one:
+  // wrapped names, ET/penalty line). offsetBox reads settled layout, so this is
+  // safe to run immediately and keeps the tree aligned exactly like skip-to-end.
+  const wrap = $('#bracket');
+  if (wrap) layoutTree(wrap);
   // light connectors whose both endpoints are now done, and flag ready parents
   refreshConnectors();
   return real;
@@ -445,15 +450,28 @@ function ensureConnectorLayer(wrap) {
   return svg;
 }
 
+// Settled layout box of an element relative to the bracket wrap's content box.
+// Uses offsetTop/Left (which are LAYOUT values, unaffected by CSS transforms),
+// so measurements are correct even mid reveal/shift animation — no waiting for
+// transitions to settle. Walks the offsetParent chain up to `root`.
+function offsetBox(elm, root) {
+  let x = 0, y = 0, node = elm, guard = 0;
+  while (node && node !== root && guard++ < 30) {
+    x += node.offsetLeft;
+    y += node.offsetTop;
+    node = node.offsetParent;
+  }
+  return { left: x, top: y, width: elm.offsetWidth, height: elm.offsetHeight };
+}
+
 // Vertically center each parent card between its two feeder cards, then draw the
-// connector paths. We compute target centers analytically (base unshifted center
-// + intended shift), propagating round by round, so a parent centers on its
-// feeders' INTENDED positions — not on a mid-transition transformed rect. Pure
-// transform/positioning; runs on build + resize, not on the per-match timer.
+// connector paths. Centers are computed analytically (base layout center +
+// propagated midpoint), measured via offsetBox so they reflect SETTLED positions
+// — never a mid-transition transformed rect. Runs on build, on every KO reveal,
+// and on resize (not per animation frame): ~15 reveals, so it's cheap.
 function layoutTree(wrap) {
   if (!koTree) return;
   const svg = ensureConnectorLayer(wrap);
-  const wrapRect = wrap.getBoundingClientRect();
   const cellOf = (id) => wrap.querySelector(`.tcell[data-cell="${id}"]`);
 
   // size the svg to the scrollable content
@@ -462,22 +480,16 @@ function layoutTree(wrap) {
   svg.setAttribute('height', h);
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
 
-  // base (unshifted) center for every card: clear shifts first so reads are clean
-  for (const round of ['R16', 'QF', 'SF', 'FINAL']) {
-    for (const id of koOrders[round]) {
-      const cell = cellOf(id);
-      if (cell) cell.style.setProperty('--shift', '0px');
-    }
-  }
+  // base center for every card from the SETTLED layout box. offsetTop ignores the
+  // --shift translateY and the ko-reveal transform, so no need to clear shifts.
   const baseCenter = {};
-  const allRounds = ['R32', 'R16', 'QF', 'SF', 'FINAL'];
-  for (const round of allRounds) {
+  for (const round of ['R32', 'R16', 'QF', 'SF', 'FINAL']) {
     for (const id of koOrders[round]) {
       const cell = cellOf(id);
       if (!cell) continue;
       const card = cell.querySelector('.match') || cell;
-      const r = card.getBoundingClientRect();
-      baseCenter[id] = r.top - wrapRect.top + wrap.scrollTop + r.height / 2;
+      const box = offsetBox(card, wrap);
+      baseCenter[id] = box.top + box.height / 2;
     }
   }
 
@@ -496,20 +508,20 @@ function layoutTree(wrap) {
   }
 
   koTargetY = target; // cache for connector redraws on reveal
-  requestAnimationFrame(() => drawConnectors(svg, wrap, wrapRect, target));
+  drawConnectors(svg, wrap, target); // synchronous — offsets are available now
 }
 
-// Horizontal edges from a card's column box (X is stable — only Y transitions,
-// and we take Y from the analytic `target` map so paths are exact immediately).
-function edgeX(id, side, wrap, wrapRect) {
+// Horizontal edge X of a card's settled layout box, relative to the wrap content
+// box (transform-independent, so the ko-reveal translateX can't skew endpoints).
+function edgeX(id, side, wrap) {
   const cell = wrap.querySelector(`.tcell[data-cell="${id}"]`);
   if (!cell) return null;
   const card = cell.querySelector('.match') || cell;
-  const r = card.getBoundingClientRect();
-  return (side === 'right' ? r.right : r.left) - wrapRect.left + wrap.scrollLeft;
+  const box = offsetBox(card, wrap);
+  return side === 'right' ? box.left + box.width : box.left;
 }
 
-function drawConnectors(svg, wrap, wrapRect, target) {
+function drawConnectors(svg, wrap, target) {
   if (!koTree) return;
   svg.replaceChildren();
   const NS = 'http://www.w3.org/2000/svg';
@@ -517,11 +529,11 @@ function drawConnectors(svg, wrap, wrapRect, target) {
     for (const id of koOrders[round]) {
       const feeders = koTree.childWinners[id];
       if (!feeders) continue;
-      const px = edgeX(id, 'left', wrap, wrapRect);
+      const px = edgeX(id, 'left', wrap);
       const py = target[id];
       if (px == null || py == null) continue;
       for (const f of feeders) {
-        const sx = edgeX(f, 'right', wrap, wrapRect);
+        const sx = edgeX(f, 'right', wrap);
         const sy = target[f];
         if (sx == null || sy == null) continue;
         const midX = (sx + px) / 2;

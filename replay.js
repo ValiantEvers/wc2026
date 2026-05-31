@@ -206,9 +206,13 @@ export function openReplay(match) {
 
   // a ball streak toward the scoring side's attacking goal
   function spawnGoalBall(side, rng) {
-    // attacking direction: side 'a' attacks right goal, 'b' attacks left
+    // attacking direction: side 'a' attacks right goal, 'b' attacks left.
+    // Start in the ATTACKING THIRD near the box — never own half / midfield.
     const toRight = side === 'a';
-    const startX = W / 2 + (rng() - 0.5) * W * 0.2;
+    const u = rng(); // 0..1 across the attacking-third band (keeps rng sequence)
+    const startX = toRight
+      ? W * (0.60 + u * 0.22)   // right attack: [0.60·W, 0.82·W]
+      : W * (0.18 + u * 0.22);  // left attack:  [0.18·W, 0.40·W]
     const startY = H * (0.25 + rng() * 0.5);
     const endX = toRight ? W - 12 : 12;
     const endY = H / 2 + (rng() - 0.5) * H * 0.28;
