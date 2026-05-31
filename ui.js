@@ -11,6 +11,7 @@
 
 import { TEAMS, GROUP_MATCHES, GROUP_LETTERS } from './data.js';
 import { simulateTournament, monteCarlo } from './engine.js';
+import { TEAM_COLORS } from './colors.js';
 
 const HIGHLIGHT = new Set(['NOR', 'BEL']); // narrative focus, zero strength effect
 const $ = (sel) => document.querySelector(sel);
@@ -26,6 +27,17 @@ const el = (tag, props = {}, ...kids) => {
   return n;
 };
 const teamName = (code) => (TEAMS.find((t) => t.code === code) || { name: code }).name;
+
+// Paint a node with its team's kit colours (CSS custom props consumed by
+// styles.css for accent stripes/borders). Purely cosmetic; no engine link.
+function applyTeamColors(node, code) {
+  const c = TEAM_COLORS[code];
+  if (c) {
+    node.style.setProperty('--team-1', c.primary);
+    node.style.setProperty('--team-2', c.secondary);
+  }
+  return node;
+}
 
 // ----------------------------------------------------------------------------
 // mode toggle
@@ -75,6 +87,7 @@ function renderGroups(sim) {
         el('td', { text: (r.gd > 0 ? '+' : '') + r.gd }),
         el('td', { text: String(r.points) })
       );
+      applyTeamColors(row, r.code);
       tbody.append(row);
     });
 
@@ -98,11 +111,13 @@ function renderGroups(sim) {
   }
 }
 
-// a team name cell with a Code-phase flag hook + highlight class
+// a team name cell with a Code-phase flag hook + highlight class.
+// Renders the 3-letter code prominently with the full name muted alongside.
 function nameCell(code) {
-  const span = el('span', { 'data-team': code },
+  const span = el('span', { class: 'codecell', 'data-team': code },
     el('span', { class: 'flag-slot', 'data-flag': code }), // empty hook for flags/canvas
-    document.createTextNode(' ' + teamName(code))
+    el('span', { class: 'code', text: code }),
+    el('span', { class: 'teamname', text: ' ' + teamName(code) })
   );
   if (HIGHLIGHT.has(code)) span.classList.add('hl');
   return span;
@@ -116,9 +131,13 @@ function matchNode(rec) {
   const sideNode = (team, score, isWinner) => {
     const node = el('div', { class: 'team' + (isWinner ? ' winner' : ''), 'data-team': team.code },
       el('span', { class: 'flag-slot', 'data-flag': team.code }),
-      el('span', { class: 'name', text: team.name }),
+      el('span', { class: 'name' },
+        el('span', { class: 'code', text: team.code }),
+        el('span', { class: 'teamname', text: ' ' + team.name })
+      ),
       el('span', { class: 'score', text: String(score) })
     );
+    applyTeamColors(node, team.code);
     if (HIGHLIGHT.has(team.code)) node.classList.add('hl');
     return node;
   };
@@ -165,9 +184,13 @@ function renderPodium(sim) {
   for (const e of entries) {
     const card = el('div', { class: 'pod', 'data-team': e.team.code },
       el('div', { class: 'medal', text: e.medal }),
-      el('div', { class: 'who', text: e.team.name }),
+      el('div', { class: 'who' },
+        el('span', { class: 'code', text: e.team.code }),
+        el('span', { class: 'teamname', text: ' ' + e.team.name })
+      ),
       el('div', { class: 'meta', text: `${e.label} · Elo ${e.team.elo} · ${e.team.confederation}` })
     );
+    applyTeamColors(card, e.team.code);
     if (HIGHLIGHT.has(e.team.code)) card.classList.add('hl');
     pod.append(card);
   }
@@ -249,6 +272,7 @@ function renderMcTable() {
         tr.append(td);
       }
     }
+    applyTeamColors(tr, team.code);
     if (HIGHLIGHT.has(team.code)) tr.classList.add('hl');
     tbody.append(tr);
   }

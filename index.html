@@ -4,112 +4,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>World Cup 2026 Simulator</title>
+  <meta name="description" content="Interactive FIFA World Cup 2026 simulator — Elo-driven engine, single tournament + Monte Carlo." />
+  <meta name="theme-color" content="#070b16" />
   <!--
-    Raw UI (Cowork phase). Functional and minimally styled — NO animations.
-    The Code phase will add canvas animations, bracket transitions and a 2D
-    goal-event replay. The DOM here is built to be animation-ready: every match
-    carries data-* attributes and an empty `.flag-slot` hook, so the next phase
-    can plug visuals in WITHOUT touching engine.js.
+    Code phase, step 1: broadcast visual identity (styles.css + colors.js).
+    Still NO new behaviour — no live playback, animations or goal replay yet
+    (those are later Code-phase steps). The DOM is unchanged from the raw UI and
+    stays animation-ready: every match carries data-* attributes and an empty
+    `.flag-slot` hook, so future visuals plug in WITHOUT touching engine.js.
 
-    Note: loaded as ES modules. Serve over http(s) (GitHub Pages, or locally
+    Loaded as ES modules. Serve over http(s) (GitHub Pages, or locally
     `python -m http.server`) — opening via file:// is blocked by module CORS.
+    All asset paths are relative (deploys on a sub-path).
   -->
-  <style>
-    :root {
-      --ink: #16181d;
-      --muted: #6b7280;
-      --line: #d7dbe0;
-      --bg: #ffffff;
-      --panel: #f6f7f9;
-      --accent: #1b6ef3;
-      --win: #0a7d34;
-      --highlight: #fff3cd;     /* Norway / Belgium narrative highlight */
-      --highlight-line: #e7c200;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      color: var(--ink);
-      background: var(--bg);
-    }
-    header {
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--line);
-    }
-    h1 { font-size: 20px; margin: 0 0 4px; }
-    h2 { font-size: 16px; margin: 28px 0 10px; }
-    h3 { font-size: 13px; margin: 0 0 6px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
-    .sub { color: var(--muted); font-size: 13px; }
-    main { padding: 0 20px 60px; max-width: 1400px; }
-
-    /* controls */
-    .modebar { display: flex; gap: 8px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
-    .modebar .spacer { flex: 1; }
-    button {
-      font: inherit; padding: 6px 12px; border: 1px solid var(--line);
-      background: var(--panel); border-radius: 6px; cursor: pointer;
-    }
-    button:hover { border-color: var(--accent); }
-    button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-    input[type="number"] { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; width: 9em; }
-    label { color: var(--muted); }
-    .controls { margin: 14px 0 4px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
-
-    .hidden { display: none !important; }
-
-    /* group tables */
-    #groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; }
-    .group { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-    .group-head { background: var(--panel); padding: 8px 10px; font-weight: 600; border-bottom: 1px solid var(--line); }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 5px 8px; text-align: right; border-bottom: 1px solid var(--line); }
-    th:nth-child(2), td:nth-child(2) { text-align: left; }
-    thead th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
-    tbody tr.adv td { background: #eefaf1; }            /* top-2 advance */
-    tbody tr.adv-third td { background: #fff8e6; }       /* 3rd: maybe-advance */
-    .matches { padding: 8px 10px; font-size: 12px; color: var(--muted); }
-    .matches .m { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; }
-    .flag-slot { display: inline-block; width: 0; }      /* Code-phase hook (flags/canvas) */
-    .hl { background: var(--highlight); box-shadow: inset 2px 0 0 var(--highlight-line); }
-
-    /* bracket */
-    #bracket-wrap { overflow-x: auto; }
-    .bracket { display: flex; gap: 16px; align-items: flex-start; min-width: max-content; padding-top: 4px; }
-    .round { display: flex; flex-direction: column; gap: 8px; min-width: 200px; }
-    .round.r-R32 .match { } /* placeholders for per-round animation targets */
-    .match {
-      border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--bg);
-    }
-    .match .team { display: flex; align-items: center; gap: 6px; padding: 4px 8px; }
-    .match .team + .team { border-top: 1px solid var(--line); }
-    .match .team .name { flex: 1; }
-    .match .team .score { font-variant-numeric: tabular-nums; font-weight: 600; }
-    .match .team.winner { color: var(--win); font-weight: 600; }
-    .match .extra { font-size: 11px; color: var(--muted); padding: 2px 8px; border-top: 1px dashed var(--line); }
-    .round-title { font-weight: 600; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-
-    /* podium */
-    #podium { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
-    .pod { border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; min-width: 180px; background: var(--panel); }
-    .pod .medal { font-size: 22px; }
-    .pod .who { font-size: 16px; font-weight: 600; margin-top: 2px; }
-    .pod .meta { color: var(--muted); font-size: 12px; }
-
-    /* monte carlo */
-    #mc-status { color: var(--muted); margin: 6px 0; }
-    #mc-table th { cursor: pointer; user-select: none; }
-    #mc-table th.sorted::after { content: " ▾"; }
-    #mc-table td.bar { position: relative; }
-    .barfill { position: absolute; left: 0; top: 0; bottom: 0; background: #e8f0fe; z-index: 0; }
-    #mc-table td span { position: relative; z-index: 1; }
-    .note { color: var(--muted); font-size: 12px; margin: 10px 0; }
-    code { background: var(--panel); padding: 1px 5px; border-radius: 4px; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <header>
-    <h1>World Cup 2026 Simulator <span class="sub">— USA · Canada · Mexico</span></h1>
+    <h1>World Cup <span class="twentysix">26</span> Simulator <span class="sub">USA · Canada · Mexico</span></h1>
     <div class="sub">Elo → Poisson → Monte Carlo. Strength is Elo only; hosts get +100 at home. Norway &amp; Belgium are highlighted, not boosted.</div>
     <div class="modebar">
       <button id="mode-single" class="active">Single tournament</button>

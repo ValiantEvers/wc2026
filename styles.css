@@ -1,0 +1,427 @@
+/* ============================================================================
+   styles.css — World Cup 2026 Simulator: broadcast identity (Code phase, step 1)
+   Visual only. No new behaviour. Every selector below targets structure that
+   ui.js already produces; nothing here renames or removes a hook.
+
+   Identity: deep near-black/navy broadcast base, national kit colours as the
+   per-team accent language, heavy condensed display type + tabular numerals,
+   gold reserved for champion / final / podium, angular editorial dividers.
+============================================================================ */
+
+:root {
+  /* broadcast base */
+  --bg: #070b16;            /* near-black navy */
+  --bg-2: #0b1222;          /* raised panel */
+  --bg-3: #111a2e;          /* hover / header */
+  --line: #1e2a44;          /* hairline */
+  --line-strong: #2c3c5e;
+  --ink: #eef2fb;           /* primary text */
+  --muted: #8595b4;         /* secondary text */
+  --muted-2: #5e6e90;
+
+  /* accents */
+  --gold: #f4c64a;          /* RESERVED: champion / final / podium */
+  --gold-deep: #c9952a;
+  --pitch: #1f9e57;         /* advance / positive */
+  --pitch-deep: #0c7a3f;
+  --live: #ff3b5c;          /* runner-up / alert chips */
+
+  /* highlight (Norway / Belgium narrative — restyled, no strength effect) */
+  --hl: #1b2742;
+  --hl-edge: var(--gold);
+
+  /* per-team accent — set inline per row/card by ui.js via --team-1 / --team-2;
+     these are only fallbacks if a team somehow has no colour. */
+  --team-1: #6f86b8;
+  --team-2: #31405f;
+
+  --radius: 10px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(244, 198, 74, 0.07), transparent 60%),
+    radial-gradient(900px 500px at -10% 0%, rgba(31, 158, 87, 0.06), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* faint broadcast texture — pure CSS, no asset */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  background-image: repeating-linear-gradient(
+    0deg, rgba(255, 255, 255, 0.012) 0 1px, transparent 1px 3px
+  );
+}
+
+body > * { position: relative; z-index: 1; }
+
+/* tabular figures everywhere numbers matter */
+table, .score, .pod .medal, #mc-table td, .seed, .codecell, .match .score {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ---- HEADER ------------------------------------------------------------- */
+header {
+  padding: 22px 22px 16px;
+  background:
+    linear-gradient(180deg, var(--bg-3), var(--bg-2));
+  border-bottom: 1px solid var(--line-strong);
+  position: relative;
+  overflow: hidden;
+}
+/* angled gold underline — editorial divider */
+header::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold-deep), var(--gold) 35%, transparent 75%);
+  transform: skewY(-0.25deg);
+  transform-origin: left;
+}
+
+h1 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(22px, 4.4vw, 40px);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+  line-height: 0.98;
+}
+h1 .twentysix {
+  color: var(--gold);
+  -webkit-text-stroke: 0;
+  margin-left: 0.15em;
+}
+h1 .sub {
+  display: inline-block;
+  font-size: clamp(11px, 1.6vw, 15px);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: 0.4em;
+}
+.sub { color: var(--muted); font-size: 13px; }
+
+h2 {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(15px, 2.4vw, 22px);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 34px 0 12px;
+  padding-left: 12px;
+  position: relative;
+}
+h2::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 50%;
+  width: 4px; height: 1.05em;
+  transform: translateY(-50%) skewX(-10deg);
+  background: var(--gold);
+}
+h3 {
+  font-size: 12px; margin: 0 0 6px;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted);
+}
+
+main { padding: 0 22px 80px; max-width: 1440px; margin: 0 auto; }
+
+/* ---- CONTROLS / MODE TOGGLE -------------------------------------------- */
+.modebar { display: flex; gap: 8px; margin-top: 16px; align-items: center; flex-wrap: wrap; }
+.modebar .spacer { flex: 1; }
+
+button {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-2);
+  color: var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.06s ease;
+}
+button:hover { border-color: var(--gold); color: var(--gold); }
+button:active { transform: translateY(1px); }
+button.active {
+  background: linear-gradient(180deg, var(--gold), var(--gold-deep));
+  color: #1a1304;
+  border-color: var(--gold);
+  box-shadow: 0 4px 14px rgba(244, 198, 74, 0.22);
+}
+
+input[type="number"] {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  width: 9em;
+  background: var(--bg);
+  color: var(--ink);
+}
+input[type="number"]:focus { outline: 2px solid var(--gold); outline-offset: 0; border-color: var(--gold); }
+label { color: var(--muted); font-size: 13px; }
+
+.controls { margin: 16px 0 4px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+
+.hidden { display: none !important; }
+
+/* ---- GROUP TABLES ------------------------------------------------------- */
+#groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+
+.group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--bg-2), var(--bg));
+  box-shadow: var(--shadow);
+}
+.group-head {
+  font-family: var(--display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 11px 14px;
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--line-strong);
+  position: relative;
+}
+.group-head::before {
+  content: "";
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--gold), var(--gold-deep));
+}
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 7px 9px; text-align: right; border-bottom: 1px solid var(--line); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+thead th {
+  color: var(--muted-2);
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  background: rgba(255, 255, 255, 0.015);
+}
+tbody tr { transition: background 0.14s ease; }
+tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+tbody td:first-child { color: var(--muted); }
+
+/* per-team accent stripe on the name cell (team colours set inline by ui.js) */
+tbody td:nth-child(2) { position: relative; padding-left: 14px; }
+tbody td:nth-child(2)::before {
+  content: "";
+  position: absolute; left: 0; top: 50%;
+  height: 64%; width: 4px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--team-1) 0 60%, var(--team-2) 60% 100%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+/* qualification states */
+tbody tr.adv td { background: linear-gradient(90deg, rgba(31, 158, 87, 0.16), rgba(31, 158, 87, 0.03)); }
+tbody tr.adv td:last-child { color: #b6f0cf; font-weight: 700; }
+tbody tr.adv-third td { background: linear-gradient(90deg, rgba(244, 198, 74, 0.12), rgba(244, 198, 74, 0.02)); }
+
+.matches { padding: 9px 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+.matches .m { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; }
+.matches .m span:last-child { font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+
+/* three-letter codes carried prominently */
+.codecell { font-family: var(--display); font-weight: 700; letter-spacing: 0.03em; }
+.codecell .code { color: var(--ink); }
+.teamname { color: var(--muted); font-weight: 500; }
+
+/* flag slot — Code-phase hook kept intact; emoji flag sits here if present */
+.flag-slot { display: inline-flex; align-items: center; justify-content: center; width: 1.25em; margin-right: 0.15em; }
+.flag-slot:empty { width: 0; margin: 0; }
+
+/* Norway / Belgium highlight — restyled to the gold-edge treatment, no boost */
+.hl { background: var(--hl) !important; box-shadow: inset 3px 0 0 var(--hl-edge); }
+tbody tr.hl td { background: var(--hl) !important; }
+tbody tr.hl td:last-child { color: var(--gold); }
+
+/* ---- BRACKET ------------------------------------------------------------ */
+#bracket-wrap { overflow-x: auto; padding-bottom: 8px; }
+.bracket { display: flex; gap: 18px; align-items: flex-start; min-width: max-content; padding-top: 4px; }
+.round { display: flex; flex-direction: column; gap: 12px; min-width: 210px; }
+.round-title {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.match {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--bg-2), var(--bg));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.match:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5); }
+
+.match .team {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  position: relative;
+  border-left: 4px solid var(--team-1);
+}
+.match .team + .team { border-top: 1px solid var(--line); }
+.match .team .name { flex: 1; font-family: var(--display); font-weight: 700; letter-spacing: 0.02em; }
+.match .team .score { font-weight: 800; font-size: 16px; color: var(--muted); min-width: 1.4em; text-align: right; }
+.match .team.winner { background: rgba(255, 255, 255, 0.03); }
+.match .team.winner .name { color: var(--ink); }
+.match .team.winner .score { color: var(--gold); }
+.match .team:not(.winner) .name { color: var(--muted); }
+.match .team.hl { background: var(--hl); box-shadow: inset 3px 0 0 var(--hl-edge); }
+
+.match .extra {
+  font-size: 10.5px; color: var(--muted-2);
+  padding: 4px 10px;
+  border-top: 1px dashed var(--line);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+/* the Final round card gets the gold treatment */
+.round.r-FINAL .round-title { color: var(--gold); border-color: var(--gold-deep); }
+.round.r-FINAL .match {
+  border-color: var(--gold-deep);
+  box-shadow: 0 8px 26px rgba(244, 198, 74, 0.18);
+}
+
+/* ---- PODIUM ------------------------------------------------------------- */
+#podium { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+.pod {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  min-width: 200px;
+  background: linear-gradient(180deg, var(--bg-2), var(--bg));
+  border-left: 5px solid var(--team-1);
+  box-shadow: var(--shadow);
+}
+.pod .medal { font-size: 26px; line-height: 1; }
+.pod .who {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-top: 6px;
+}
+.pod .meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+/* champion card — full gold broadcast moment */
+#podium .pod:first-child {
+  border-color: var(--gold);
+  border-left-color: var(--gold);
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(244, 198, 74, 0.16), transparent 55%),
+    linear-gradient(180deg, var(--bg-2), var(--bg));
+  box-shadow: 0 10px 34px rgba(244, 198, 74, 0.22);
+}
+#podium .pod:first-child .who { color: var(--gold); }
+.pod.hl { box-shadow: inset 4px 0 0 var(--hl-edge), var(--shadow); }
+
+/* ---- MONTE CARLO TABLE -------------------------------------------------- */
+#mc-status { color: var(--muted); margin: 6px 0; font-variant-numeric: tabular-nums; }
+.note { color: var(--muted); font-size: 12px; margin: 12px 0; }
+code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var(--gold); font-size: 0.92em; }
+
+#mc-table {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: var(--shadow);
+}
+#mc-table thead th {
+  position: sticky; top: 0;
+  background: var(--bg-3);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+#mc-table th:hover { color: var(--gold); }
+#mc-table th.sorted { color: var(--gold); }
+#mc-table th.sorted::after { content: " ▾"; }
+#mc-table td.bar { position: relative; }
+#mc-table td.bar .barfill {
+  position: absolute; left: 0; top: 4px; bottom: 4px;
+  background: linear-gradient(90deg, rgba(31, 158, 87, 0.42), rgba(31, 158, 87, 0.12));
+  border-radius: 0 3px 3px 0;
+  z-index: 0;
+}
+#mc-table td span { position: relative; z-index: 1; }
+#mc-table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+/* champion-odds column (last) tinted gold */
+#mc-table td:last-child .barfill { background: linear-gradient(90deg, rgba(244, 198, 74, 0.45), rgba(244, 198, 74, 0.12)); }
+#mc-table tbody td:first-child { position: relative; padding-left: 14px; }
+#mc-table tbody td:first-child::before {
+  content: "";
+  position: absolute; left: 0; top: 50%;
+  height: 62%; width: 4px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--team-1) 0 60%, var(--team-2) 60% 100%);
+}
+#mc-table tbody tr.hl { background: var(--hl); }
+#mc-table tbody tr.hl td:first-child { color: var(--gold); }
+
+/* ---- RESPONSIVE --------------------------------------------------------- */
+@media (max-width: 720px) {
+  main { padding: 0 14px 64px; }
+  header { padding: 18px 14px 14px; }
+  #groups { grid-template-columns: 1fr; }
+  th, td { padding: 6px 7px; }
+  thead th { font-size: 9.5px; }
+  .round { min-width: 180px; }
+  button { padding: 8px 12px; font-size: 12px; }
+}
+@media (max-width: 420px) {
+  /* keep dense numeric columns readable: drop W/D/L on the smallest screens */
+  table th:nth-child(3), table td:nth-child(3),
+  table th:nth-child(4), table td:nth-child(4),
+  table th:nth-child(5), table td:nth-child(5) { display: none; }
+}
+
+/* respect reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; scroll-behavior: auto !important; }
+}
