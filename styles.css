@@ -404,6 +404,87 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
 #mc-table tbody tr.hl { background: var(--hl); }
 #mc-table tbody tr.hl td:first-child { color: var(--gold); }
 
+/* ---- LIVE PLAYBACK (Code phase step 2) ---------------------------------- */
+.playbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 6px 0 4px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, var(--bg-3), var(--bg-2));
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.playbar .pb-progress {
+  flex: 1;
+  min-width: 120px;
+  height: 6px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.playbar .pb-progress .fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--pitch-deep), var(--pitch));
+  transition: width 0.25s ease;
+  border-radius: 999px;
+}
+#pb-label {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* segmented speed control */
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+.seg button {
+  border: 0;
+  border-radius: 0;
+  padding: 7px 11px;
+  font-size: 12px;
+  background: var(--bg-2);
+  box-shadow: none;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.active {
+  background: linear-gradient(180deg, var(--gold), var(--gold-deep));
+  color: #1a1304;
+}
+
+/* pending vs played reveal states */
+.matches .m.pending { opacity: 0.4; }
+.matches .m.pending span:last-child { color: var(--muted-2); }
+.match.pending { opacity: 0.5; border-style: dashed; }
+.match.pending .name .code { color: var(--muted-2); }
+.pod.pending { opacity: 0.45; border-left-color: var(--line-strong); }
+.pod.pending .who { color: var(--muted); }
+
+/* "now playing" pulse — subtle; heavier motion lands in steps 3–4 */
+@keyframes pb-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 198, 74, 0.0); }
+  50%      { box-shadow: 0 0 0 3px rgba(244, 198, 74, 0.35); }
+}
+.match.playing {
+  border-color: var(--gold);
+  animation: pb-pulse 1.1s ease-in-out infinite;
+}
+.group.playing { border-color: var(--gold-deep); }
+.matches .m.playing {
+  opacity: 1;
+  color: var(--gold);
+  font-weight: 700;
+}
+.matches .m.playing span:last-child { color: var(--gold); }
+.pod.playing { animation: pb-pulse 1.1s ease-in-out infinite; }
+
 /* ---- RESPONSIVE --------------------------------------------------------- */
 @media (max-width: 720px) {
   main { padding: 0 14px 64px; }
