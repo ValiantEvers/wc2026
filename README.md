@@ -1,5 +1,7 @@
 # World Cup 2026 Simulator
 
+[![CI](https://github.com/ValiantEvers/wc2026/actions/workflows/ci.yml/badge.svg)](https://github.com/ValiantEvers/wc2026/actions/workflows/ci.yml)
+
 Interactive FIFA World Cup 2026 simulator (USA · Canada · Mexico, 11 June – 19 July 2026).
 Real groups, real calendar, real bracket structure. Team strength is driven **only** by Elo
 rating — no hand-tuning, no per-team boost. Hosts get the standard eloratings +100 when playing
@@ -12,9 +14,9 @@ Two modes:
 - **Monte Carlo** — run the tournament many times (default 10,000) and show each team's
   stage-reach probabilities (win group %, reach R16/QF/SF/final %, win tournament %).
 
-This is the **engine + data + raw UI** (Cowork phase). A later **Code phase** will add canvas
-animations, bracket transitions, and a 2D goal-event replay — the DOM is already built with
-`data-*` attributes and empty `.flag-slot` hooks so visuals plug in **without touching the engine**.
+The **engine, data, and UI are cleanly separated**: the visual layer — animated reveals, bracket
+transitions, and a 2D goal-event replay (`replay.js`) — is layered on through `data-*` attributes
+and `.flag-slot` hooks **without touching the engine**, which stays pure and headless-testable.
 
 ## Stack
 
@@ -29,7 +31,8 @@ The engine (`engine.js`) imports nothing from the UI and references no DOM, so i
 | `data.js` | Data | Pure static data, zero logic: 48 teams (Elo + world rank), 12 groups, 72-match group calendar, knockout structure with slot logic. |
 | `engine.js` | Engine | Deterministic, seeded simulation. No UI/DOM. |
 | `test.js` | Tests | Headless acceptance suite — `node test.js`. |
-| `index.html` + `ui.js` | UI | Raw, minimally styled, no animations. Mode toggle, group tables, bracket, podium, Monte Carlo table. |
+| `index.html` + `ui.js` | UI | Mode toggle, group tables, bracket, podium, Monte Carlo table, with animated reveals (all honoring `prefers-reduced-motion`). |
+| `replay.js` | UI | 2D goal-event replay layer; reads the engine's event stream, mutates no engine state. |
 
 ## Run
 
@@ -100,10 +103,24 @@ All tournament data is transcribed from the project's `BRIEF.md` and `DATA-VERIF
 
 ## Deploy
 
-Target: **`wc2026.evers.no`** (GitHub Pages, custom domain). The repo root is the site root, so
-assets use relative/root-relative paths — no project base-path prefix. `CNAME` contains the custom
-domain. DNS (`wc2026 → valiantevers.github.io`) is configured separately.
+Live at **[www.evers.no/wc2026/](https://www.evers.no/wc2026/)** via GitHub Pages (branch `main`,
+served from the repo root). As a project Pages site under the account's `evers.no` user site, it
+inherits the custom domain automatically — no separate `CNAME` file is required.
+
+## Accessibility
+
+- **Respects `prefers-reduced-motion`** — when the OS requests reduced motion, all transitions and
+  animations (including the goal-event replay) are neutralised, in both the CSS and the JS render path.
+- **Semantic, keyboard-friendly markup** — a single `<h1>`, landmark elements
+  (`header`/`nav`/`main`/`footer`), and native `<button>` controls for the main actions rather than
+  click-only `<div>`s. Numeric inputs have an explicit focus outline; native controls keep the
+  browser's default focus ring.
+- `lang` and a responsive viewport are set; the UI is text/emoji-based, so there are no images
+  requiring alt text.
+
+No ARIA roles are added beyond native element semantics, and colour contrast has not been formally
+audited against WCAG AA — noted honestly rather than over-claimed.
 
 ## License
 
-MIT.
+MIT — see [LICENSE](LICENSE).
