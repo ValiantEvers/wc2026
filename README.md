@@ -118,8 +118,11 @@ inherits the custom domain automatically — no separate `CNAME` file is require
 - `lang` and a responsive viewport are set; the UI is text/emoji-based, so there are no images
   requiring alt text.
 
-No ARIA roles are added beyond native element semantics, and colour contrast has not been formally
-audited against WCAG AA — noted honestly rather than over-claimed.
+The one piece of ARIA in use is the replay overlay, which is exposed as a modal dialog
+(`role="dialog"` + `aria-modal="true"`): opening it moves focus to the dialog's close button, and
+closing it returns focus to the previously focused element. Beyond that, no ARIA roles are added
+past native element semantics, and colour contrast has not been formally audited against WCAG AA —
+noted honestly rather than over-claimed.
 
 ## License
 

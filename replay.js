@@ -46,7 +46,7 @@ const el = (tag, props = {}, ...kids) => {
   for (const k in props) {
     if (k === 'class') n.className = props[k];
     else if (k === 'text') n.textContent = props[k];
-    else if (k.startsWith('data-')) n.setAttribute(k, props[k]);
+    else if (k === 'role' || k.startsWith('aria-') || k.startsWith('data-')) n.setAttribute(k, props[k]);
     else n[k] = props[k];
   }
   for (const c of kids) if (c != null) n.append(c);
@@ -90,6 +90,7 @@ function buildPenalties(penA, penB, rng) {
 // ---------------------------------------------------------------------------
 export function openReplay(match) {
   closeReplay(); // only one at a time
+  const prevFocus = document.activeElement; // restore on close (a11y)
 
   const seedBase = seedFrom(match.id || `${match.a.code}-${match.b.code}`);
   const maxMinute = match.extraTime ? 120 : 90;
@@ -138,6 +139,7 @@ export function openReplay(match) {
   );
   const overlay = el('div', { class: 'rp-overlay', role: 'dialog', 'aria-modal': 'true' }, card);
   document.body.append(overlay);
+  closeBtn.focus(); // move focus into the dialog on open
 
   // summary list (used for reduced-motion + screen readers)
   const summary = el('div', { class: 'rp-summary' });
@@ -162,7 +164,7 @@ export function openReplay(match) {
   // ---- model --------------------------------------------------------------
   const ctrl = {
     minute: 0, score: { a: 0, b: 0 }, playing: false, speed: 1,
-    raf: 0, lastT: 0, done: false, balls: [], ripples: [], penIndex: -1, pens: null,
+    raf: 0, lastT: 0, done: false, inPens: false, balls: [], ripples: [], penIndex: -1, pens: null,
   };
   active = { overlay, destroy };
 
@@ -324,12 +326,13 @@ export function openReplay(match) {
 
   // ---- main loop ----------------------------------------------------------
   function finish() {
-    ctrl.playing = false; ctrl.done = true;
+    ctrl.playing = false; ctrl.done = true; ctrl.inPens = false;
     cancelAnimationFrame(ctrl.raf);
     // ensure exact final score
     ctrl.score.a = match.scoreA; ctrl.score.b = match.scoreB; updateScore();
     clockEl.textContent = `${maxMinute}′${match.extraTime ? ' (ET)' : ''}`;
     tlFill.style.width = '100%';
+    playBtn.disabled = false;
     playBtn.textContent = 'Replay';
     buildSummary();
   }
@@ -337,6 +340,9 @@ export function openReplay(match) {
     // penalties phase (knockout, drawn after ET)
     if (match.penalties) {
       if (REDUCED) { renderPensStatic(); finish(); return; }
+      clearTimeout(ctrl.penTimer); // never stack a second reveal chain
+      ctrl.inPens = true;
+      playBtn.disabled = true; // play/pause is meaningless mid-shootout; finish() re-enables
       animatePensStep(0, () => finish());
     } else {
       finish();
@@ -363,7 +369,7 @@ export function openReplay(match) {
   }
 
   function play() {
-    if (ctrl.done) return;
+    if (ctrl.done || ctrl.inPens) return; // re-entering tick() mid-shootout would restart the pens
     ctrl.playing = true; ctrl.lastT = 0; playBtn.textContent = 'Pause';
     ctrl.raf = requestAnimationFrame(tick);
   }
@@ -433,6 +439,7 @@ export function openReplay(match) {
     document.removeEventListener('keydown', onKey);
     window.removeEventListener('resize', onResize);
     overlay.remove();
+    if (prevFocus && typeof prevFocus.focus === 'function') prevFocus.focus(); // give focus back
   }
 
   // ---- boot ---------------------------------------------------------------
