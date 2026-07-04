@@ -148,7 +148,9 @@ function nameCell(code) {
 }
 
 const ROUND_TITLES = { R32: 'Round of 32', R16: 'Round of 16', QF: 'Quarterfinals', SF: 'Semifinals', THIRD: '3rd place', FINAL: 'Final' };
-const ROUND_ORDER = ['R32', 'R16', 'QF', 'SF', 'FINAL']; // THIRD shown with the podium
+// THIRD renders as a trailing column (score + replay like any KO card); the
+// bronze/4th TEAMS are additionally shown on the podium.
+const ROUND_ORDER = ['R32', 'R16', 'QF', 'SF', 'FINAL', 'THIRD'];
 
 function matchNode(rec) {
   const r = rec.result;
@@ -355,7 +357,6 @@ function buildColumn(round, recs, order, cardFor) {
 // round's cards line up with the midpoint of their two feeders.
 function roundOrders(tree) {
   const orders = { R32: tree.r32Order };
-  const round16Ids = KNOCKOUT_ROUNDS.find((r) => r.round === 'R16').matches.map((m) => m.id);
   // For each subsequent round, order by the average index of its feeders in the
   // previous round's order.
   const prevIndex = (order) => { const idx = {}; order.forEach((id, i) => (idx[id] = i)); return idx; };
@@ -372,7 +373,7 @@ function roundOrders(tree) {
     orders[round] = withKey.map((x) => x.id);
     prev = round;
   }
-  void round16Ids;
+  orders.THIRD = ['THIRD']; // single-card trailing column, not part of the tree
   return orders;
 }
 
@@ -505,6 +506,15 @@ function layoutTree(wrap) {
       const cell = cellOf(id);
       if (cell && baseCenter[id] != null) cell.style.setProperty('--shift', `${target[id] - baseCenter[id]}px`);
     }
+  }
+
+  // THIRD-place column: outside the winner tree (no feeders/connectors), so
+  // just align its single card vertically with the final's target center.
+  const thirdCell = cellOf('THIRD');
+  if (thirdCell && target.FINAL != null) {
+    const card = thirdCell.querySelector('.match') || thirdCell;
+    const box = offsetBox(card, wrap);
+    thirdCell.style.setProperty('--shift', `${target.FINAL - (box.top + box.height / 2)}px`);
   }
 
   koTargetY = target; // cache for connector redraws on reveal
@@ -667,9 +677,10 @@ function revealEvent(ev) {
   } else {
     const rec = ev.rec;
     if (ev.round === 'THIRD') {
+      const card = revealKoCard(rec);
       fillPodium(2, rec.winner);
       fillPodium(3, rec.loser);
-      setPlaying([podiumSlots[2], podiumSlots[3]]);
+      setPlaying([card, podiumSlots[2], podiumSlots[3]]);
     } else if (ev.round === 'FINAL') {
       const card = revealKoCard(rec);
       fillPodium(0, rec.winner);
@@ -904,7 +915,7 @@ function renderMcTable() {
 
   const rows = TEAMS.map((t) => ({ team: t, p: mcData[t.code] }));
   rows.sort((a, b) => {
-    if (mcSortKey === 'code') return a.team.code < b.team.code ? -1 : 1;
+    // 'code' is never a sort key: the Team column header gets no click handler.
     if (mcSortKey === 'elo') return b.team.elo - a.team.elo;
     return b.p[mcSortKey] - a.p[mcSortKey];
   });

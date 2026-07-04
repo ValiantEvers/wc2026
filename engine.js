@@ -168,8 +168,8 @@ function penaltyShootout(eloDiff, rng) {
  *   rng  = seeded generator (defaults to Math.random for convenience; the
  *          tournament path always passes a seeded rng for determinism).
  *
- * Returns a rich result object (score, event stream, ET/penalty details,
- * winnerSide). For a non-knockout draw, winnerSide is null.
+ * Returns a rich result object (score, minute-sorted event stream, ET/penalty
+ * details, winnerSide). For a non-knockout draw, winnerSide is null.
  */
 export function playMatch(teamA, teamB, opts = {}, rng = Math.random) {
   const { knockout = false, venueCountry = null } = opts;
@@ -180,10 +180,12 @@ export function playMatch(teamA, teamB, opts = {}, rng = Math.random) {
   let scoreA = poissonSample(expA, rng);
   let scoreB = poissonSample(expB, rng);
 
+  // Contract: result.events is ALWAYS sorted by minute (the ET paths below
+  // re-sort after appending extra-time goals).
   const events = [
     ...goalEvents(scoreA, 'a', teamA.code, 1, 90, rng),
     ...goalEvents(scoreB, 'b', teamB.code, 1, 90, rng),
-  ];
+  ].sort((x, y) => x.minute - y.minute);
 
   const result = {
     a: teamA.code,

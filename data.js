@@ -221,14 +221,14 @@ export const GROUP_MATCHES = [
 // Knockout structure.
 //
 // Slot encoding (resolved by the engine against group results):
-//   { slot: 'W', group: 'A' }                  -> winner of group A
-//   { slot: 'R', group: 'B' }                  -> runner-up of group B
-//   { slot: 'T', groups: ['A','B','C','D','F'] } -> a qualifying third-placer
-//                                                  drawn from one of these groups
+//   { slot: 'W', group: 'A' } -> winner of group A
+//   { slot: 'R', group: 'B' } -> runner-up of group B
+//   { slot: 'T' }             -> a qualifying third-placer
 //
-// R32 matchups + venues are official (BRIEF.md §5.3). Each 'T' slot's allowed
-// group list already EXCLUDES its own group winner's group, so the
-// "no same-group rematch" rule is structural.
+// R32 matchups + venues are official (BRIEF.md §5.3). Which third fills a 'T'
+// slot is decided entirely by the engine's assignThirdPlaces() (rank-and-assign,
+// keyed by the match's group winner) — that is also where the "no same-group
+// rematch" rule is enforced (a third never faces its own group's winner).
 //
 // Group winners receiving a third-placer: A, B, D, E, G, I, K, L (8 of them).
 // Group winners facing runners-up: C, F, H, J. (BRIEF.md §5.4)
@@ -240,20 +240,20 @@ export const GROUP_MATCHES = [
 // is now the FIFA match number, so the R16+ tree can reference winners by number.
 export const KNOCKOUT_R32 = [
   { id: 'M73', date: 'Sun Jun 28', kickoff: '3pm',    a: { slot: 'R', group: 'A' }, b: { slot: 'R', group: 'B' }, stadium: 'SoFi Stadium (Inglewood)',             venueCountry: 'USA' },
-  { id: 'M74', date: 'Mon Jun 29', kickoff: '4:30pm', a: { slot: 'W', group: 'E' }, b: { slot: 'T', groups: ['A', 'B', 'C', 'D', 'F'] }, stadium: 'Gillette Stadium (Boston)',  venueCountry: 'USA' },
+  { id: 'M74', date: 'Mon Jun 29', kickoff: '4:30pm', a: { slot: 'W', group: 'E' }, b: { slot: 'T' }, stadium: 'Gillette Stadium (Boston)',  venueCountry: 'USA' },
   { id: 'M75', date: 'Mon Jun 29', kickoff: '9pm',    a: { slot: 'W', group: 'F' }, b: { slot: 'R', group: 'C' }, stadium: 'Estadio BBVA (Monterrey)',            venueCountry: 'Mexico' },
   { id: 'M76', date: 'Mon Jun 29', kickoff: '1pm',    a: { slot: 'W', group: 'C' }, b: { slot: 'R', group: 'F' }, stadium: 'NRG Stadium (Houston)',               venueCountry: 'USA' },
-  { id: 'M77', date: 'Tue Jun 30', kickoff: '5pm',    a: { slot: 'W', group: 'I' }, b: { slot: 'T', groups: ['C', 'D', 'F', 'G', 'H'] }, stadium: 'MetLife Stadium (East Rutherford, NJ)', venueCountry: 'USA' },
+  { id: 'M77', date: 'Tue Jun 30', kickoff: '5pm',    a: { slot: 'W', group: 'I' }, b: { slot: 'T' }, stadium: 'MetLife Stadium (East Rutherford, NJ)', venueCountry: 'USA' },
   { id: 'M78', date: 'Tue Jun 30', kickoff: '1pm',    a: { slot: 'R', group: 'E' }, b: { slot: 'R', group: 'I' }, stadium: 'AT&T Stadium (Dallas)',               venueCountry: 'USA' },
-  { id: 'M79', date: 'Tue Jun 30', kickoff: '9pm',    a: { slot: 'W', group: 'A' }, b: { slot: 'T', groups: ['C', 'E', 'F', 'H', 'I'] }, stadium: 'Estadio Azteca (Mexico City)', venueCountry: 'Mexico' },
-  { id: 'M80', date: 'Wed Jul 1',  kickoff: '12pm',   a: { slot: 'W', group: 'L' }, b: { slot: 'T', groups: ['E', 'H', 'I', 'J', 'K'] }, stadium: 'Mercedes-Benz Stadium (Atlanta)', venueCountry: 'USA' },
-  { id: 'M81', date: 'Wed Jul 1',  kickoff: '8pm',    a: { slot: 'W', group: 'D' }, b: { slot: 'T', groups: ['B', 'E', 'F', 'I', 'J'] }, stadium: "Levi's Stadium (SF Bay)", venueCountry: 'USA' },
-  { id: 'M82', date: 'Wed Jul 1',  kickoff: '4pm',    a: { slot: 'W', group: 'G' }, b: { slot: 'T', groups: ['A', 'E', 'H', 'I', 'J'] }, stadium: 'Lumen Field (Seattle)',   venueCountry: 'USA' },
+  { id: 'M79', date: 'Tue Jun 30', kickoff: '9pm',    a: { slot: 'W', group: 'A' }, b: { slot: 'T' }, stadium: 'Estadio Azteca (Mexico City)', venueCountry: 'Mexico' },
+  { id: 'M80', date: 'Wed Jul 1',  kickoff: '12pm',   a: { slot: 'W', group: 'L' }, b: { slot: 'T' }, stadium: 'Mercedes-Benz Stadium (Atlanta)', venueCountry: 'USA' },
+  { id: 'M81', date: 'Wed Jul 1',  kickoff: '8pm',    a: { slot: 'W', group: 'D' }, b: { slot: 'T' }, stadium: "Levi's Stadium (SF Bay)", venueCountry: 'USA' },
+  { id: 'M82', date: 'Wed Jul 1',  kickoff: '4pm',    a: { slot: 'W', group: 'G' }, b: { slot: 'T' }, stadium: 'Lumen Field (Seattle)',   venueCountry: 'USA' },
   { id: 'M83', date: 'Thu Jul 2',  kickoff: '7pm',    a: { slot: 'R', group: 'K' }, b: { slot: 'R', group: 'L' }, stadium: 'BMO Field (Toronto)',                 venueCountry: 'Canada' },
   { id: 'M84', date: 'Thu Jul 2',  kickoff: '3pm',    a: { slot: 'W', group: 'H' }, b: { slot: 'R', group: 'J' }, stadium: 'SoFi Stadium (Inglewood)',            venueCountry: 'USA' },
-  { id: 'M85', date: 'Thu Jul 2',  kickoff: '11pm',   a: { slot: 'W', group: 'B' }, b: { slot: 'T', groups: ['E', 'F', 'G', 'I', 'J'] }, stadium: 'BC Place (Vancouver)',  venueCountry: 'Canada' },
+  { id: 'M85', date: 'Thu Jul 2',  kickoff: '11pm',   a: { slot: 'W', group: 'B' }, b: { slot: 'T' }, stadium: 'BC Place (Vancouver)',  venueCountry: 'Canada' },
   { id: 'M86', date: 'Fri Jul 3',  kickoff: '6pm',    a: { slot: 'W', group: 'J' }, b: { slot: 'R', group: 'H' }, stadium: 'Hard Rock Stadium (Miami)',           venueCountry: 'USA' },
-  { id: 'M87', date: 'Fri Jul 3',  kickoff: '9:30pm', a: { slot: 'W', group: 'K' }, b: { slot: 'T', groups: ['D', 'E', 'I', 'J', 'L'] }, stadium: 'Arrowhead Stadium (Kansas City)', venueCountry: 'USA' },
+  { id: 'M87', date: 'Fri Jul 3',  kickoff: '9:30pm', a: { slot: 'W', group: 'K' }, b: { slot: 'T' }, stadium: 'Arrowhead Stadium (Kansas City)', venueCountry: 'USA' },
   { id: 'M88', date: 'Fri Jul 3',  kickoff: '2pm',    a: { slot: 'R', group: 'D' }, b: { slot: 'R', group: 'G' }, stadium: 'AT&T Stadium (Dallas)',               venueCountry: 'USA' },
 ];
 
