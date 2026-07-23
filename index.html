@@ -29,6 +29,7 @@
     <div class="modebar">
       <button id="mode-single" class="active">Single tournament</button>
       <button id="mode-mc">Monte Carlo</button>
+      <button id="mode-fasit">Reality check</button>
       <span class="spacer"></span>
       <span class="sub" id="engine-tag"></span>
     </div>
@@ -69,6 +70,16 @@
         <thead></thead>
         <tbody></tbody>
       </table>
+    </section>
+
+    <!-- FASIT — how the frozen pre-tournament model scored against reality -->
+    <section id="view-fasit" class="hidden">
+      <p class="note">
+        The engine was frozen before kickoff (Elo snapshot 30&nbsp;May&nbsp;2026) and never saw a result.
+        Here it is graded against the <strong>actual</strong> tournament (source:
+        <code>openfootball/worldcup.json</code>). The model has no hand-tuning — strength is Elo only.
+      </p>
+      <div id="fasit-body"></div>
     </section>
   </main>
 

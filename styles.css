@@ -476,6 +476,97 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
 #mc-table tbody tr.hl { background: var(--hl); }
 #mc-table tbody tr.hl td:first-child { color: var(--accent-blue); }
 
+/* ---- REALITY CHECK (retrospective scorecard) ---------------------------- */
+.fasit-block { margin-top: 30px; }
+.fasit-block > h2 { margin-top: 0; }
+
+/* ordinal verdict cards */
+.verdict-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.verdict {
+  flex: 1 1 220px;
+  border: 1px solid var(--line-strong);
+  border-left: 5px solid var(--line-strong);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  background: linear-gradient(180deg, var(--bg-2), var(--bg));
+  box-shadow: var(--shadow);
+}
+.verdict.hit { border-left-color: var(--pitch); }
+.verdict.miss { border-left-color: var(--live); }
+.verdict.pending { color: var(--muted); font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; flex-basis: 100%; }
+.verdict .v-top { display: flex; align-items: center; justify-content: space-between; }
+.verdict .v-icon { font-size: 22px; line-height: 1; }
+.verdict .v-check { font-family: var(--display); font-weight: 900; font-size: 20px; }
+.verdict.hit .v-check { color: var(--pitch); }
+.verdict.miss .v-check { color: var(--live); }
+.verdict .v-label { font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; font-size: 15px; margin: 8px 0 6px; }
+.verdict .v-detail { font-size: 12.5px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; }
+.verdict .v-detail .v-tag {
+  font-family: var(--display); font-weight: 700; font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted-2); display: inline-block; min-width: 3.4em;
+}
+
+/* title-odds table (gold bar = the champion column) */
+#fasit-champ, #fasit-metrics {
+  width: 100%; border: 1px solid var(--line); border-radius: var(--radius);
+  overflow: hidden; background: var(--bg-2); box-shadow: var(--shadow); margin-bottom: 12px;
+}
+#fasit-champ thead th, #fasit-metrics thead th { background: var(--bg-3); white-space: nowrap; }
+#fasit-champ td.bar { position: relative; }
+#fasit-champ td.bar .barfill {
+  position: absolute; left: 0; top: 4px; bottom: 4px;
+  background: linear-gradient(90deg, rgba(244, 198, 74, 0.45), rgba(244, 198, 74, 0.12));
+  border-radius: 0 3px 3px 0; z-index: 0;
+}
+#fasit-champ td.bar span { position: relative; z-index: 1; }
+#fasit-champ tbody td:first-child, #fasit-metrics tbody td:first-child { position: relative; padding-left: 14px; }
+#fasit-champ tbody td:first-child::before {
+  content: ""; position: absolute; left: 0; top: 50%; height: 62%; width: 4px;
+  transform: translateY(-50%); border-radius: 2px;
+  background: linear-gradient(180deg, var(--team-1) 0 60%, var(--team-2) 60% 100%);
+}
+#fasit-champ tbody tr:hover, #fasit-metrics tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+#fasit-champ .res-tag { color: var(--muted); font-size: 12px; white-space: nowrap; }
+#fasit-champ tr.champ-row td { background: linear-gradient(90deg, rgba(244, 198, 74, 0.12), transparent 70%); }
+#fasit-champ tr.champ-row .res-tag { color: var(--gold); font-weight: 700; }
+
+/* per-match metric cells: model number + muted baseline */
+#fasit-metrics .metric .m-model, #fasit-metrics .m-model { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--ink); }
+#fasit-metrics .metric .m-base { display: block; font-size: 10.5px; color: var(--muted-2); font-variant-numeric: tabular-nums; }
+
+/* market benchmark box */
+.benchbox { border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2); padding: 12px 14px; margin-bottom: 10px; }
+.benchrow { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; padding: 4px 0; }
+.benchrow + .benchrow { border-top: 1px solid var(--line); }
+.benchlab { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; font-size: 11px; color: var(--muted); min-width: 11em; }
+.benchval { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14px; }
+.benchval.gold { color: var(--gold); }
+.caveat {
+  color: var(--muted); font-size: 12.5px; line-height: 1.5; margin: 4px 0 0;
+  padding: 10px 12px; border-left: 3px solid var(--accent-blue-deep);
+  background: rgba(77, 163, 255, 0.05); border-radius: 0 8px 8px 0;
+}
+
+/* calibration chart */
+.calib-wrap { border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2); padding: 10px; box-shadow: var(--shadow); }
+.calib-svg { display: block; width: 100%; height: auto; max-width: 620px; margin: 0 auto; }
+.calib-grid { stroke: var(--line); stroke-width: 1; }
+.calib-diag { stroke: var(--muted-2); stroke-width: 1.5; stroke-dasharray: 5 5; opacity: 0.8; }
+.calib-axtext { fill: var(--muted-2); font-size: 11px; font-variant-numeric: tabular-nums; }
+.calib-axlab { fill: var(--muted); font-size: 12px; font-family: var(--display); font-weight: 700; letter-spacing: 0.04em; }
+.calib-line { fill: none; stroke-width: 2; opacity: 0.55; }
+.calib-line.group { stroke: var(--accent-blue); }
+.calib-line.ko { stroke: var(--pitch); }
+.calib-dot { fill-opacity: 0.28; stroke-width: 1.5; }
+.calib-dot.group { fill: var(--accent-blue); stroke: var(--accent-blue); }
+.calib-dot.ko { fill: var(--pitch); stroke: var(--pitch); }
+.calib-legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 8px; padding-left: 4px; }
+.calib-legend .lg { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.calib-legend .lg-dot { width: 11px; height: 11px; border-radius: 50%; }
+.calib-legend .lg.group .lg-dot { background: var(--accent-blue); }
+.calib-legend .lg.ko .lg-dot { background: var(--pitch); }
+.calib-legend .lg.diag .lg-line { width: 16px; height: 0; border-top: 2px dashed var(--muted-2); }
+
 /* ---- LIVE PLAYBACK (Code phase step 2) ---------------------------------- */
 .playbar {
   display: flex;

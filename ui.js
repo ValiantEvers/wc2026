@@ -18,6 +18,7 @@
 
 import { TEAMS, GROUP_MATCHES, GROUP_LETTERS, GROUPS, KNOCKOUT_ROUNDS } from './data.js';
 import { simulateTournament, monteCarlo } from './engine.js';
+import { computeBacktest, championReport } from './backtest.js';
 import { TEAM_COLORS } from './colors.js';
 import { openReplay, closeReplay } from './replay.js';
 
@@ -102,17 +103,19 @@ function launchReplay(match) {
 // ----------------------------------------------------------------------------
 // mode toggle
 // ----------------------------------------------------------------------------
-const views = { single: $('#view-single'), mc: $('#view-mc') };
-const modeBtns = { single: $('#mode-single'), mc: $('#mode-mc') };
+const views = { single: $('#view-single'), mc: $('#view-mc'), fasit: $('#view-fasit') };
+const modeBtns = { single: $('#mode-single'), mc: $('#mode-mc'), fasit: $('#mode-fasit') };
 function setMode(mode) {
   for (const k of Object.keys(views)) {
     views[k].classList.toggle('hidden', k !== mode);
     modeBtns[k].classList.toggle('active', k === mode);
   }
-  if (mode === 'mc' && pb) pb.pause(); // don't mutate hidden DOM on a timer
+  if (mode !== 'single' && pb) pb.pause(); // don't mutate hidden single-view DOM on a timer
+  if (mode === 'fasit') renderFasit();      // lazy: builds once, then cached
 }
 modeBtns.single.addEventListener('click', () => setMode('single'));
 modeBtns.mc.addEventListener('click', () => setMode('mc'));
+modeBtns.fasit.addEventListener('click', () => setMode('fasit'));
 
 // ----------------------------------------------------------------------------
 // SINGLE TOURNAMENT
@@ -957,6 +960,216 @@ $('#btn-mc').addEventListener('click', () => {
     renderMcTable();
   }, 20);
 });
+
+// ----------------------------------------------------------------------------
+// REALITY CHECK — the frozen pre-tournament model graded against the actual 2026
+// results. Per-match scoring + calibration are instant (analytic); the title-odds
+// forecast reuses the forward Monte Carlo (deterministic monteCarlo(10000, 1),
+// exactly what the Monte Carlo tab produces). Built once, then cached.
+// ----------------------------------------------------------------------------
+const pctF = (x, d = 1) => (x * 100).toFixed(d) + '%';
+const num3 = (x) => x.toFixed(3);
+const NS_SVG = 'http://www.w3.org/2000/svg';
+const svg = (tag, attrs = {}, ...kids) => {
+  const n = document.createElementNS(NS_SVG, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  for (const c of kids) if (c != null) n.append(c);
+  return n;
+};
+
+let fasitBuilt = false;
+let fasitMc = null; // cached monteCarlo(10000, 1)
+
+// Section wrapper with an editorial h2 (reuses global heading style).
+function fasitSection(title, ...kids) {
+  return el('section', { class: 'fasit-block' }, el('h2', { text: title }), ...kids);
+}
+
+// --- ordinal verdict: did the model call the right teams? --------------------
+function verdictCard(icon, label, model, real, hit) {
+  return el('div', { class: 'verdict' + (hit ? ' hit' : ' miss') },
+    el('div', { class: 'v-top' }, el('span', { class: 'v-icon', text: icon }), el('span', { class: 'v-check', text: hit ? '✓' : '✗' })),
+    el('div', { class: 'v-label', text: label }),
+    el('div', { class: 'v-detail' },
+      el('div', {}, el('span', { class: 'v-tag', text: 'model' }), ' ', model),
+      el('div', {}, el('span', { class: 'v-tag', text: 'actual' }), ' ', real)
+    )
+  );
+}
+
+// --- title-odds table + market benchmark -------------------------------------
+const RESULT_TAG = { ESP: '🥇 champion', ARG: '🥈 finalist', FRA: 'semifinal', ENG: 'semifinal' };
+function championSection(rep) {
+  // odds table (top 8)
+  const table = el('table', { id: 'fasit-champ' });
+  const thead = el('thead', {}, el('tr', {},
+    el('th', { text: 'Team' }), el('th', { text: 'Title odds' }),
+    el('th', { text: 'Reach final' }), el('th', { text: 'Reach SF' }), el('th', { text: 'Actual' })
+  ));
+  const tbody = el('tbody');
+  for (const c of rep.top) {
+    const td = el('td', { class: 'bar' },
+      el('div', { class: 'barfill', style: `width:${Math.min(100, (c.champion / rep.top[0].champion) * 100)}%` }),
+      el('span', { text: pctF(c.champion) })
+    );
+    const tr = el('tr', { 'data-team': c.code },
+      (() => { const t = el('td', {}, nameCell(c.code)); t.style.textAlign = 'left'; return t; })(),
+      td,
+      el('td', { text: pctF(c.reachFinal) }),
+      el('td', { text: pctF(c.reachSF) }),
+      (() => { const t = el('td', { class: 'res-tag', text: RESULT_TAG[c.code] || '—' }); t.style.textAlign = 'left'; return t; })()
+    );
+    applyTeamColors(tr, c.code);
+    if (HIGHLIGHT.has(c.code)) tr.classList.add('hl');
+    if (RESULT_TAG[c.code] === '🥇 champion') tr.classList.add('champ-row');
+    tbody.append(tr);
+  }
+  table.append(thead, tbody);
+
+  // market benchmark on Spain + single-tournament champion log-loss
+  const bench = el('div', { class: 'benchbox' },
+    el('div', { class: 'benchrow' },
+      el('span', { class: 'benchlab', text: "Spain's title odds" }),
+      el('span', { class: 'benchval gold', text: `model ${pctF(rep.spain)}` }),
+      el('span', { class: 'benchval', text: `Opta ${pctF(rep.benchmark.opta)}` }),
+      el('span', { class: 'benchval', text: `Groll/Zeileis/Hvattum ${pctF(rep.benchmark.gzh)}` })
+    ),
+    el('div', { class: 'benchrow' },
+      el('span', { class: 'benchlab', text: 'Champion log-loss' }),
+      el('span', { class: 'benchval', text: `model ${num3(rep.championLL.model)}` }),
+      el('span', { class: 'benchval', text: `Opta ${num3(rep.championLL.opta)}` }),
+      el('span', { class: 'benchval', text: `GZH ${num3(rep.championLL.gzh)}` }),
+      el('span', { class: 'sub', text: '· lower is better' })
+    )
+  );
+  const caveat = el('p', { class: 'caveat' },
+    'On this one realisation the model wins the champion log-loss — but only because Spain actually won, and the model bet heavily (37%) on them. ',
+    'The calibration curve below shows that 37% was genuinely over-confident. Nailing the ordinal outcome — right champion, right finalists, right four semifinalists — is the stronger evidence here than this single log-loss.'
+  );
+  return fasitSection('Title odds vs the market', table, bench, caveat);
+}
+
+// --- per-match proper-scoring table ------------------------------------------
+function perMatchSection(bt) {
+  const seg = [
+    { key: 'all', label: 'All 104 matches' },
+    { key: 'group', label: 'Group stage (72)' },
+    { key: 'ko', label: 'Knockout (32)' },
+  ];
+  const metricCell = (model, base) => el('td', { class: 'metric' },
+    el('span', { class: 'm-model', text: num3(model) }),
+    el('span', { class: 'm-base', text: `unif ${num3(base)}` })
+  );
+  const table = el('table', { id: 'fasit-metrics' },
+    el('thead', {}, el('tr', {},
+      el('th', { text: 'Segment' }), el('th', { text: 'RPS' }), el('th', { text: 'Brier' }),
+      el('th', { text: 'Log-loss' }), el('th', { text: 'Favourite hit' })
+    )),
+    el('tbody', {}, ...seg.map((s) => {
+      const m = bt.perMatch[s.key], b = bt.baseline[s.key];
+      const first = el('td', { text: s.label }); first.style.textAlign = 'left';
+      return el('tr', {}, first, metricCell(m.rps, b.rps), metricCell(m.brier, b.brier), metricCell(m.logloss, b.logloss),
+        el('td', {}, el('span', { class: 'm-model', text: pctF(m.favHit) })));
+    }))
+  );
+  const note = el('p', { class: 'note' },
+    'For every match actually played, the model gives a pre-match ',
+    el('strong', { text: 'win / draw / loss' }),
+    ' forecast (from the same Elo→Poisson core, at the real venue), scored against the 90-minute result. ',
+    el('strong', { text: 'RPS' }), ' (ranked probability score) is the football-forecasting standard; ',
+    el('strong', { text: 'Brier' }), ' and ', el('strong', { text: 'log-loss' }),
+    ' are shown alongside. All three are ', el('em', { text: 'lower-is-better' }),
+    '; the muted number is a max-entropy (1⁄3, 1⁄3, 1⁄3) baseline. The model beats it in every segment, and is sharpest in the knockouts, where the Elo gaps are widest.'
+  );
+  return fasitSection('Per-match forecast quality', table, note);
+}
+
+// --- calibration (reliability) chart ------------------------------------------
+function calibChart(bt) {
+  const W = 560, H = 340, pad = { l: 52, r: 16, t: 14, b: 44 };
+  const px = (v) => pad.l + v * (W - pad.l - pad.r);
+  const py = (v) => H - pad.b - v * (H - pad.t - pad.b);
+  const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, class: 'calib-svg', preserveAspectRatio: 'xMidYMid meet' });
+
+  // grid + axes
+  for (let g = 0; g <= 4; g++) {
+    const t = g / 4;
+    root.append(svg('line', { x1: px(t), y1: py(0), x2: px(t), y2: py(1), class: 'calib-grid' }));
+    root.append(svg('line', { x1: px(0), y1: py(t), x2: px(1), y2: py(t), class: 'calib-grid' }));
+    root.append(svg('text', { x: px(t), y: H - pad.b + 16, class: 'calib-axtext', 'text-anchor': 'middle' }, `${t * 100}%`));
+    root.append(svg('text', { x: pad.l - 8, y: py(t) + 3, class: 'calib-axtext', 'text-anchor': 'end' }, `${t * 100}%`));
+  }
+  // perfect-calibration diagonal
+  root.append(svg('line', { x1: px(0), y1: py(0), x2: px(1), y2: py(1), class: 'calib-diag' }));
+  // axis labels
+  root.append(svg('text', { x: px(0.5), y: H - 6, class: 'calib-axlab', 'text-anchor': 'middle' }, 'Model probability'));
+  root.append(svg('text', { x: 14, y: py(0.5), class: 'calib-axlab', 'text-anchor': 'middle', transform: `rotate(-90 14 ${py(0.5)})` }, 'Observed frequency'));
+
+  const series = [
+    { key: 'group', cls: 'group', label: 'Group stage' },
+    { key: 'ko', cls: 'ko', label: 'Knockout' },
+  ];
+  for (const s of series) {
+    const pts = bt.calibration[s.key].filter((b) => b.n > 0);
+    // reliability line through the points
+    if (pts.length > 1) {
+      const d = pts.map((p, i) => `${i ? 'L' : 'M'} ${px(p.pred).toFixed(1)} ${py(p.obs).toFixed(1)}`).join(' ');
+      root.append(svg('path', { d, class: `calib-line ${s.cls}` }));
+    }
+    for (const p of pts) {
+      root.append(svg('circle', { cx: px(p.pred), cy: py(p.obs), r: Math.max(3, Math.sqrt(p.n) * 1.6), class: `calib-dot ${s.cls}` }));
+    }
+  }
+  // legend
+  const leg = el('div', { class: 'calib-legend' },
+    el('span', { class: 'lg group' }, el('span', { class: 'lg-dot' }), 'Group stage'),
+    el('span', { class: 'lg ko' }, el('span', { class: 'lg-dot' }), 'Knockout'),
+    el('span', { class: 'lg diag' }, el('span', { class: 'lg-line' }), 'Perfect calibration')
+  );
+  const note = el('p', { class: 'note' },
+    'Each dot is a probability bucket (bigger = more forecasts in it): x is what the model said, y is how often it happened. On the diagonal = perfectly calibrated. ',
+    'Points sitting below the line on the right — e.g. group favourites the model rated ~86% that won only ~63% of the time — are the over-confidence the concentrated title odds hinted at. ',
+    el('em', { text: 'Single-tournament samples, so read the shape, not any one dot.' })
+  );
+  return fasitSection('Calibration — group stage vs knockout', el('div', { class: 'calib-wrap' }, root), leg, note);
+}
+
+// Fill the two MC-dependent sections once the Monte Carlo is ready.
+function fillChampionSections(rep) {
+  const ord = $('#fasit-ordinal');
+  if (ord) {
+    ord.replaceChildren(
+      verdictCard('🏆', 'Champion', 'Spain ranked #1 by title odds', 'Spain won', rep.hits.champion),
+      verdictCard('🥇🥈', 'Both finalists', 'top-2 odds: Spain, Argentina', 'final: Spain–Argentina', rep.hits.finalists),
+      verdictCard('4️⃣', 'All four semifinalists', 'top-4 odds: ESP, ARG, FRA, ENG', 'semis: ESP, ARG, FRA, ENG', rep.hits.semifinalists)
+    );
+  }
+  const champ = $('#fasit-champ-slot');
+  if (champ) champ.replaceChildren(championSection(rep));
+}
+
+function renderFasit() {
+  if (fasitBuilt) return;
+  const body = $('#fasit-body');
+  const bt = computeBacktest();
+
+  const ordinal = fasitSection('Did it call the right teams?',
+    el('div', { id: 'fasit-ordinal', class: 'verdict-row' },
+      el('div', { class: 'verdict pending', text: 'computing title odds…' }))
+  );
+  const champSlot = el('div', { id: 'fasit-champ-slot' },
+    el('p', { class: 'note', text: 'Running 10 000 deterministic tournaments for the title odds…' }));
+
+  body.replaceChildren(ordinal, champSlot, perMatchSection(bt), calibChart(bt));
+  fasitBuilt = true;
+
+  // reuse the forward MC (deterministic, seed base 1) for the title odds
+  if (fasitMc) { fillChampionSections(championReport(fasitMc)); return; }
+  setTimeout(() => {
+    fasitMc = monteCarlo(10000, 1);
+    fillChampionSections(championReport(fasitMc));
+  }, 20);
+}
 
 // ----------------------------------------------------------------------------
 // boot
