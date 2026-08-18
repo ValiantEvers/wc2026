@@ -966,8 +966,12 @@ $('#btn-mc').addEventListener('click', () => {
 // results. Per-match scoring + calibration are instant (analytic); the title-odds
 // forecast reuses the forward Monte Carlo (deterministic monteCarlo(10000, 1),
 // exactly what the Monte Carlo tab produces). Built once, then cached.
+// Editorial rule (2026-08-19): plain words first — every number is explained in
+// football terms where it appears; the exact formulas live one click away in
+// <details class="nerd"> “stats corner” boxes. Same numbers, no degree required.
 // ----------------------------------------------------------------------------
 const pctF = (x, d = 1) => (x * 100).toFixed(d) + '%';
+const pct0 = (x) => Math.round(x * 100) + '%';
 const num3 = (x) => x.toFixed(3);
 const NS_SVG = 'http://www.w3.org/2000/svg';
 const svg = (tag, attrs = {}, ...kids) => {
@@ -983,6 +987,32 @@ let fasitMc = null; // cached monteCarlo(10000, 1)
 // Section wrapper with an editorial h2 (reuses global heading style).
 function fasitSection(title, ...kids) {
   return el('section', { class: 'fasit-block' }, el('h2', { text: title }), ...kids);
+}
+
+// Collapsible “stats corner” — the exact numbers and formulas, one click away.
+function nerdBox(label, ...kids) {
+  return el('details', { class: 'nerd' },
+    el('summary', {}, el('span', { class: 'nerd-tag', text: 'Stats corner' }), label),
+    el('div', { class: 'nerd-body' }, ...kids)
+  );
+}
+
+// --- the short version: the whole verdict in three plain sentences -----------
+function takeawaySection(bt) {
+  const skillAll = 1 - bt.perMatch.all.rps / bt.baseline.all.rps;
+  const drawPred = bt.rows.reduce((s, r) => s + r.p[1], 0) / bt.rows.length;
+  const drawObs = bt.rows.filter((r) => r.o === 1).length / bt.rows.length;
+  const hot = bt.calibration.group[8]; // group-stage forecasts rated 80–90% likely
+  const item = (mark, cls, ...body) => el('div', { class: 'take ' + cls },
+    el('span', { class: 'take-mark', text: mark }), el('p', {}, ...body));
+  return fasitSection('The short version',
+    item('✓', 'good', el('strong', { text: 'It named the right teams. ' }),
+      'Before a ball was kicked, its four most likely champions — Spain, Argentina, France and England — turned out to be the exact four semifinalists. Its top two were the finalists. Its #1 pick, Spain, lifted the cup.'),
+    item('✓', 'good', el('strong', { text: 'Match by match, it clearly beat guessing. ' }),
+      `Across all 104 games its win/draw/loss forecasts sat about ${pct0(skillAll)} of the way from blind guessing to a perfect crystal ball — sharpest in the knockouts, where the gaps between teams are widest.`),
+    item('⚠', 'warn', el('strong', { text: 'It has two honest weaknesses. ' }),
+      `It was too sure of big favourites (group-stage results it rated ~${pct0(hot.pred)} likely happened only ~${pct0(hot.obs)} of the time), and it under-called draws (expected ${pct0(drawPred)} of matches, reality served ${pct0(drawObs)}). Both are laid out below.`)
+  );
 }
 
 // --- ordinal verdict: did the model call the right teams? --------------------
@@ -1026,36 +1056,55 @@ function championSection(rep) {
   }
   table.append(thead, tbody);
 
-  // market benchmark on Spain + single-tournament champion log-loss
+  // market benchmark on Spain, in plain sight; the log-loss maths one click down
   const bench = el('div', { class: 'benchbox' },
     el('div', { class: 'benchrow' },
       el('span', { class: 'benchlab', text: "Spain's title odds" }),
       el('span', { class: 'benchval gold', text: `model ${pctF(rep.spain)}` }),
       el('span', { class: 'benchval', text: `Opta ${pctF(rep.benchmark.opta)}` }),
-      el('span', { class: 'benchval', text: `Groll/Zeileis/Hvattum ${pctF(rep.benchmark.gzh)}` })
-    ),
-    el('div', { class: 'benchrow' },
-      el('span', { class: 'benchlab', text: 'Champion log-loss' }),
-      el('span', { class: 'benchval', text: `model ${num3(rep.championLL.model)}` }),
-      el('span', { class: 'benchval', text: `Opta ${num3(rep.championLL.opta)}` }),
-      el('span', { class: 'benchval', text: `GZH ${num3(rep.championLL.gzh)}` }),
-      el('span', { class: 'sub', text: '· lower is better' })
+      el('span', { class: 'benchval', text: `Groll/Zeileis/Hvattum ${pctF(rep.benchmark.gzh)}` }),
+      el('span', { class: 'sub', text: '· the pros said roughly 1-in-6; the model more than doubled that' })
     )
   );
   const caveat = el('p', { class: 'caveat' },
-    'On this one realisation the model wins the champion log-loss — but only because Spain actually won, and the model bet heavily (37%) on them. ',
-    'The calibration curve below shows that 37% was genuinely over-confident. Nailing the ordinal outcome — right champion, right finalists, right four semifinalists — is the stronger evidence here than this single log-loss.'
+    'Before the model takes a victory lap: it “beats” the pros here only because it bet hardest on Spain — and Spain happened to win. ',
+    'That 37% was genuinely over-confident, as the favourites check further down shows. The stronger evidence is the order it got right: the champion, both finalists, all four semifinalists.'
   );
-  return fasitSection('Title odds vs the market', table, bench, caveat);
+  const nerd = nerdBox('champion log-loss vs the market',
+    el('p', {},
+      `One-number version of the same comparison — score −ln(chance given to the actual champion), lower is better: model ${num3(rep.championLL.model)} · Opta ${num3(rep.championLL.opta)} · GZH ${num3(rep.championLL.gzh)}. `,
+      'One tournament is a single sample, and this score mostly rewards whoever bet biggest on the team that happened to win — which is exactly why the caveat above matters.'
+    )
+  );
+  return fasitSection('Title odds vs the market', table, bench, caveat, nerd);
 }
 
-// --- per-match proper-scoring table ------------------------------------------
+// --- per-match quality: skill bars up front, exact scoring one click away ----
 function perMatchSection(bt) {
   const seg = [
     { key: 'all', label: 'All 104 matches' },
     { key: 'group', label: 'Group stage (72)' },
     { key: 'ko', label: 'Knockout (32)' },
   ];
+  // Skill = how far from blind guessing towards a perfect forecast, by RPS.
+  const skill = (k) => 1 - bt.perMatch[k].rps / bt.baseline[k].rps;
+  const bars = el('div', { class: 'skillbars' }, ...seg.map((s) => {
+    const v = skill(s.key);
+    return el('div', { class: 'skillrow' },
+      el('span', { class: 'skill-lab', text: s.label }),
+      el('div', { class: 'skill-track' }, el('div', { class: 'skill-fill', style: `width:${(v * 100).toFixed(1)}%` })),
+      el('span', { class: 'skill-val', text: pct0(v) })
+    );
+  }));
+  const scale = el('div', { class: 'skill-scale' },
+    el('span', { text: '0% = blind guessing (1⁄3 win, 1⁄3 draw, 1⁄3 loss — every match)' }),
+    el('span', { text: '100% = called every result perfectly' })
+  );
+  const favLine = el('p', { class: 'note' },
+    'Before every match the model published a win/draw/loss probability (same Elo→Poisson core the simulator runs on, at the real venue), scored against the 90-minute result. The simplest yardstick: the side it favoured won ',
+    el('strong', { text: pctF(bt.perMatch.all.favHit) }),
+    ' of the 104 matches, with draws counted as misses. Football is low-scoring chaos — nobody calls them all; what matters is being reliably closer than guessing, which is what the bars measure.'
+  );
   const metricCell = (model, base) => el('td', { class: 'metric' },
     el('span', { class: 'm-model', text: num3(model) }),
     el('span', { class: 'm-base', text: `unif ${num3(base)}` })
@@ -1072,16 +1121,65 @@ function perMatchSection(bt) {
         el('td', {}, el('span', { class: 'm-model', text: pctF(m.favHit) })));
     }))
   );
-  const note = el('p', { class: 'note' },
-    'For every match actually played, the model gives a pre-match ',
-    el('strong', { text: 'win / draw / loss' }),
-    ' forecast (from the same Elo→Poisson core, at the real venue), scored against the 90-minute result. ',
-    el('strong', { text: 'RPS' }), ' (ranked probability score) is the football-forecasting standard; ',
-    el('strong', { text: 'Brier' }), ' and ', el('strong', { text: 'log-loss' }),
-    ' are shown alongside. All three are ', el('em', { text: 'lower-is-better' }),
-    '; the muted number is a max-entropy (1⁄3, 1⁄3, 1⁄3) baseline. The model beats it in every segment, and is sharpest in the knockouts, where the Elo gaps are widest.'
+  const nerd = nerdBox('exact scores — RPS, Brier, log-loss',
+    table,
+    el('p', {},
+      'All three grade the full probability forecast against the result, and all are lower-is-better; the muted number under each is blind guessing (1⁄3, 1⁄3, 1⁄3) on the same matches. ',
+      el('strong', { text: 'RPS' }),
+      ' (ranked probability score, the standard in football forecasting) charges more the further the forecast lands from the result — saying “home win” before a draw costs less than saying it before an away win. ',
+      el('strong', { text: 'Brier' }), ' is the same idea without that ordering; ',
+      el('strong', { text: 'log-loss' }),
+      ' punishes confident misses hardest. The skill bars above are 1 − RPS ÷ RPS(guessing).'
+    )
   );
-  return fasitSection('Per-match forecast quality', table, note);
+  return fasitSection('Match by match: how much better than guessing?', bars, scale, favLine, nerd);
+}
+
+// --- the shock list: honest about exactly where it was most wrong ------------
+function shockSection(bt) {
+  const stageLbl = (r) => (r.stage === 'group' ? `Group ${r.grp}` : r.round);
+  const shocks = [...bt.rows].sort((a, b) => b.surprise - a.surprise).slice(0, 5);
+  const table = el('table', { id: 'fasit-shocks' },
+    el('thead', {}, el('tr', {},
+      el('th', { text: 'Result (90′)' }), el('th', { text: 'Stage' }),
+      el('th', { text: 'Model said' }), el('th', { text: 'Chance it gave this' })
+    )),
+    el('tbody', {}, ...shocks.map((r) => {
+      const favIsA = r.p[0] >= r.p[2];
+      const match = el('td', { class: 'shock-match' },
+        nameCell(r.a), el('span', { class: 'shock-score', text: ` ${r.ft[0]}–${r.ft[1]} ` }), nameCell(r.b));
+      match.style.textAlign = 'left';
+      const said = el('td', { class: 'shock-said', text: `${teamName(favIsA ? r.a : r.b)} win — ${pct0(r.favProb)}` });
+      said.style.textAlign = 'left';
+      return el('tr', {}, match, el('td', { class: 'shock-stage', text: stageLbl(r) }), said,
+        el('td', {}, el('span', { class: 'shock-p', text: pctF(r.p[r.o]) })));
+    }))
+  );
+  const safest = [...bt.rows].sort((a, b) => b.p[b.o] - a.p[a.o])[0];
+  const note = el('p', { class: 'note' },
+    `Everything is scored on the 90-minute result, so a shock draw counts even when the favourite went through afterwards. At the other end of the list, its safest call that landed: ${teamName(safest.a)} ${safest.ft[0]}–${safest.ft[1]} ${teamName(safest.b)} — it gave that ${pct0(safest.p[safest.o])}.`
+  );
+  return fasitSection('The five results that shocked it most', table, note);
+}
+
+// --- the draw blind spot ------------------------------------------------------
+function drawSection(bt) {
+  const pred = bt.rows.reduce((s, r) => s + r.p[1], 0) / bt.rows.length;
+  const nObs = bt.rows.filter((r) => r.o === 1).length;
+  const obs = nObs / bt.rows.length;
+  const box = el('div', { class: 'drawbox' },
+    el('div', { class: 'draw-stat' },
+      el('span', { class: 'draw-big', text: pct0(pred) }),
+      el('span', { class: 'draw-lab', text: 'of matches expected level after 90 minutes' })),
+    el('span', { class: 'draw-vs', text: 'vs' }),
+    el('div', { class: 'draw-stat' },
+      el('span', { class: 'draw-big', text: pct0(obs) }),
+      el('span', { class: 'draw-lab', text: `actually were (${nObs} of ${bt.rows.length})` }))
+  );
+  const note = el('p', { class: 'note' },
+    `Why: the engine rolls each team's goals independently, and that simplification quietly under-rates tight, cagey stalemates. The standard fix (a Dixon–Coles low-score correction) sits in the engine as a deliberately empty, documented hook — the model was frozen before kickoff, and it stays honest rather than quietly patched afterwards.`
+  );
+  return fasitSection('The blind spot: draws', box, note);
 }
 
 // --- calibration (reliability) chart ------------------------------------------
@@ -1102,8 +1200,8 @@ function calibChart(bt) {
   // perfect-calibration diagonal
   root.append(svg('line', { x1: px(0), y1: py(0), x2: px(1), y2: py(1), class: 'calib-diag' }));
   // axis labels
-  root.append(svg('text', { x: px(0.5), y: H - 6, class: 'calib-axlab', 'text-anchor': 'middle' }, 'Model probability'));
-  root.append(svg('text', { x: 14, y: py(0.5), class: 'calib-axlab', 'text-anchor': 'middle', transform: `rotate(-90 14 ${py(0.5)})` }, 'Observed frequency'));
+  root.append(svg('text', { x: px(0.5), y: H - 6, class: 'calib-axlab', 'text-anchor': 'middle' }, 'What the model said'));
+  root.append(svg('text', { x: 14, y: py(0.5), class: 'calib-axlab', 'text-anchor': 'middle', transform: `rotate(-90 14 ${py(0.5)})` }, 'How often it happened'));
 
   const series = [
     { key: 'group', cls: 'group', label: 'Group stage' },
@@ -1126,12 +1224,15 @@ function calibChart(bt) {
     el('span', { class: 'lg ko' }, el('span', { class: 'lg-dot' }), 'Knockout'),
     el('span', { class: 'lg diag' }, el('span', { class: 'lg-line' }), 'Perfect calibration')
   );
-  const note = el('p', { class: 'note' },
-    'Each dot is a probability bucket (bigger = more forecasts in it): x is what the model said, y is how often it happened. On the diagonal = perfectly calibrated. ',
-    'Points sitting below the line on the right — e.g. group favourites the model rated ~86% that won only ~63% of the time — are the over-confidence the concentrated title odds hinted at. ',
-    el('em', { text: 'Single-tournament samples, so read the shape, not any one dot.' })
+  const howto = el('p', { class: 'note' },
+    'An honest forecaster is right exactly as often as it claims: of all the things it calls “80% likely”, about 80% should actually happen. Every dot below checks that — across is what the model said, up is how often it came true, and a bigger dot means more forecasts in that bucket. ',
+    el('strong', { text: 'On the dashed line = honest confidence. Below it = over-confident. Above it = under-confident.' })
   );
-  return fasitSection('Calibration — group stage vs knockout', el('div', { class: 'calib-wrap' }, root), leg, note);
+  const note = el('p', { class: 'note' },
+    'The group-stage dots sag under the line on the right: results the model rated ~86% likely landed only ~63% of the time — the same over-confidence as that bold 37% on Spain. The knockout dots hug the line: there, its confidence was honest. ',
+    el('em', { text: 'One tournament is a small sample — read the shape, not any single dot.' })
+  );
+  return fasitSection('When it said 80%, did 80% happen?', howto, el('div', { class: 'calib-wrap' }, root), leg, note);
 }
 
 // Fill the two MC-dependent sections once the Monte Carlo is ready.
@@ -1158,9 +1259,9 @@ function renderFasit() {
       el('div', { class: 'verdict pending', text: 'computing title odds…' }))
   );
   const champSlot = el('div', { id: 'fasit-champ-slot' },
-    el('p', { class: 'note', text: 'Running 10 000 deterministic tournaments for the title odds…' }));
+    el('p', { class: 'note', text: 'Replaying the tournament 10 000 times for the title odds…' }));
 
-  body.replaceChildren(ordinal, champSlot, perMatchSection(bt), calibChart(bt));
+  body.replaceChildren(takeawaySection(bt), ordinal, champSlot, shockSection(bt), perMatchSection(bt), drawSection(bt), calibChart(bt));
   fasitBuilt = true;
 
   // reuse the forward MC (deterministic, seed base 1) for the title odds

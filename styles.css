@@ -507,11 +507,11 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
 }
 
 /* title-odds table (gold bar = the champion column) */
-#fasit-champ, #fasit-metrics {
+#fasit-champ, #fasit-metrics, #fasit-shocks {
   width: 100%; border: 1px solid var(--line); border-radius: var(--radius);
   overflow: hidden; background: var(--bg-2); box-shadow: var(--shadow); margin-bottom: 12px;
 }
-#fasit-champ thead th, #fasit-metrics thead th { background: var(--bg-3); white-space: nowrap; }
+#fasit-champ thead th, #fasit-metrics thead th, #fasit-shocks thead th { background: var(--bg-3); white-space: nowrap; }
 #fasit-champ td.bar { position: relative; }
 #fasit-champ td.bar .barfill {
   position: absolute; left: 0; top: 4px; bottom: 4px;
@@ -525,7 +525,7 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
   transform: translateY(-50%); border-radius: 2px;
   background: linear-gradient(180deg, var(--team-1) 0 60%, var(--team-2) 60% 100%);
 }
-#fasit-champ tbody tr:hover, #fasit-metrics tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+#fasit-champ tbody tr:hover, #fasit-metrics tbody tr:hover, #fasit-shocks tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
 #fasit-champ .res-tag { color: var(--muted); font-size: 12px; white-space: nowrap; }
 #fasit-champ tr.champ-row td { background: linear-gradient(90deg, rgba(244, 198, 74, 0.12), transparent 70%); }
 #fasit-champ tr.champ-row .res-tag { color: var(--gold); font-weight: 700; }
@@ -546,6 +546,64 @@ code { background: var(--bg-3); padding: 2px 6px; border-radius: 5px; color: var
   padding: 10px 12px; border-left: 3px solid var(--accent-blue-deep);
   background: rgba(77, 163, 255, 0.05); border-radius: 0 8px 8px 0;
 }
+
+/* "the short version" takeaway cards */
+.take {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--radius);
+  background: var(--bg-2); padding: 10px 14px; margin: 0 0 8px;
+}
+.take.good { border-left-color: var(--pitch); }
+.take.warn { border-left-color: var(--live); }
+.take-mark { font-family: var(--display); font-weight: 900; font-size: 16px; line-height: 1.35; }
+.take.good .take-mark { color: var(--pitch); }
+.take.warn .take-mark { color: var(--live); }
+.take p { margin: 0; font-size: 13.5px; line-height: 1.55; }
+
+/* collapsible "stats corner" — exact formulas one click away */
+details.nerd {
+  border: 1px dashed var(--line); border-radius: var(--radius);
+  background: var(--bg-2); margin: 10px 0;
+}
+details.nerd summary { cursor: pointer; padding: 9px 12px; font-size: 12.5px; color: var(--muted); user-select: none; }
+details.nerd summary::marker { color: var(--muted-2); }
+details.nerd[open] summary { border-bottom: 1px dashed var(--line); }
+.nerd-tag {
+  font-family: var(--display); font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.05em; font-size: 10.5px; color: var(--accent-blue); margin-right: 7px;
+}
+.nerd-body { padding: 10px 12px; }
+.nerd-body p { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: 8px 0 2px; }
+.nerd-body table { margin-bottom: 0; }
+
+/* skill bars: blind guessing -> crystal ball */
+.skillbars { display: flex; flex-direction: column; gap: 8px; margin: 6px 0 4px; }
+.skillrow { display: flex; align-items: center; gap: 10px; }
+.skill-lab { min-width: 10.5em; font-size: 12.5px; color: var(--muted); }
+.skill-track {
+  flex: 1; height: 14px; border-radius: 7px;
+  background: var(--bg-3); border: 1px solid var(--line); overflow: hidden;
+}
+.skill-fill {
+  height: 100%; border-radius: 7px 0 0 7px;
+  background: linear-gradient(90deg, rgba(77, 163, 255, 0.25), rgba(77, 163, 255, 0.75));
+}
+.skill-val { font-family: var(--display); font-weight: 800; font-variant-numeric: tabular-nums; min-width: 2.6em; text-align: right; }
+.skill-scale { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 11px; color: var(--muted-2); margin-bottom: 8px; }
+
+/* shock list + draw blind spot */
+#fasit-shocks .shock-score { font-family: var(--display); font-weight: 900; }
+#fasit-shocks .shock-p { font-family: var(--display); font-weight: 800; color: var(--live); font-variant-numeric: tabular-nums; }
+#fasit-shocks .shock-stage, #fasit-shocks .shock-said { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.drawbox {
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg-2); box-shadow: var(--shadow); padding: 14px 18px;
+}
+.draw-stat { display: flex; flex-direction: column; gap: 2px; max-width: 15em; }
+.draw-big { font-family: var(--display); font-weight: 900; font-size: 26px; font-variant-numeric: tabular-nums; }
+.draw-vs { color: var(--muted-2); font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: 11px; }
+.draw-lab { font-size: 11.5px; color: var(--muted); }
 
 /* calibration chart */
 .calib-wrap { border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-2); padding: 10px; box-shadow: var(--shadow); }
