@@ -126,6 +126,8 @@ h1 .sub {
   margin-left: 0.4em;
 }
 .sub { color: var(--muted); font-size: 13px; }
+.sub a { color: var(--accent-blue); text-decoration: none; }
+.sub a:hover, .sub a:focus-visible { text-decoration: underline; }
 
 h2 {
   font-family: var(--display);

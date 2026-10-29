@@ -7,12 +7,14 @@ Real groups, real calendar, real bracket structure. Team strength is driven **on
 rating — no hand-tuning, no per-team boost. Hosts get the standard eloratings +100 when playing
 in their own country.
 
-Two modes:
+Three modes:
 
 - **Single tournament** — play one full tournament match-by-match; watch the group tables fill in,
   then the knockout bracket and final result.
 - **Monte Carlo** — run the tournament many times (default 10,000) and show each team's
   stage-reach probabilities (win group %, reach R16/QF/SF/final %, win tournament %).
+- **Reality check** — the model, frozen before kickoff, graded against the actual tournament
+  (Spain won, 1–0 a.e.t. against Argentina). Direct link: `evers.no/wc2026/#reality`.
 
 The **engine, data, and UI are cleanly separated**: the visual layer — animated reveals, bracket
 transitions, and a 2D goal-event replay (`replay.js`) — is layered on through `data-*` attributes

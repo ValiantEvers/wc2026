@@ -1278,3 +1278,9 @@ function renderFasit() {
 mountPlaybackControls();
 $('#engine-tag').textContent = `${TEAMS.length} teams · ${GROUP_LETTERS.length} groups · seeded engine`;
 startPlayback(42); // plays out by default (no instant dump)
+
+// #reality opens the Reality check directly (the tournament is over, so it's the shareable
+// view). Runs last: setMode('fasit') reaches state declared further down this module.
+const modeFromHash = () => { if (location.hash === '#reality') setMode('fasit'); };
+window.addEventListener('hashchange', modeFromHash);
+modeFromHash();
